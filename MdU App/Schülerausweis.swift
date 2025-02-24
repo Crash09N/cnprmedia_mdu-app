@@ -41,9 +41,8 @@ struct Schülerausweis: View {
                     .foregroundColor(.white)
                     .cornerRadius(10)
             }
-            .padding(.bottom, 20)
+            .padding(.bottom, 70)
         }
-        .navigationTitle("Schülerausweis")
         .onAppear {
             loadImage()
         }
@@ -51,9 +50,7 @@ struct Schülerausweis: View {
     
     func loadImage() {
         NetworkManager.shared.fetchImage { data in
-            DispatchQueue.main.async {
-                self.imageData = data
-            }
+            self.imageData = data
         }
     }
     

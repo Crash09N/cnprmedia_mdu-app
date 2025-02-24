@@ -44,12 +44,14 @@ class NetworkManager {
         }
         
         let task = URLSession.shared.dataTask(with: url) { data, response, error in
-            if let error = error {
-                print("Error fetching image: \(error)")
-                completion(nil)
-                return
+            DispatchQueue.main.async {
+                if let error = error {
+                    print("Error fetching image: \(error)")
+                    completion(nil)
+                    return
+                }
+                completion(data)
             }
-            completion(data)
         }
         
         task.resume()
