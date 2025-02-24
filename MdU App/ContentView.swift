@@ -8,8 +8,31 @@
 import SwiftUI
 
 struct ContentView: View {
-    @State private var showSchülerausweis = false
+    @State private var selectedTab = 0
 
+    var body: some View {
+        ZStack {
+            // Display the selected view based on the selectedTab state
+            if selectedTab == 0 {
+                HomeView()
+            } else {
+                Schülerausweis()
+            }
+            
+            VStack {
+                Spacer()
+                HStack {
+                    Spacer()
+                    FloatingTabBar(selectedTab: $selectedTab)
+                    Spacer()
+                }
+                .padding(.bottom, 20)
+            }
+        }
+    }
+}
+
+struct HomeView: View {
     var body: some View {
         NavigationView {
             ZStack {
@@ -28,14 +51,9 @@ struct ContentView: View {
                     }
                     .padding(.bottom, 70)
                 }
-                
-                FloatingMenuBar(showSchülerausweis: $showSchülerausweis)
             }
             .navigationTitle("Home")
             .navigationBarHidden(true)
-        }
-        .fullScreenCover(isPresented: $showSchülerausweis) {
-            Schülerausweis()
         }
     }
 }
@@ -62,45 +80,37 @@ struct InfoWidget: View {
     }
 }
 
-struct FloatingMenuBar: View {
-    @Binding var showSchülerausweis: Bool
+struct FloatingTabBar: View {
+    @Binding var selectedTab: Int
 
     var body: some View {
-        VStack {
+        HStack {
+            TabBarButton(icon: "house.fill", index: 0, selectedTab: $selectedTab)
             Spacer()
-            HStack {
-                MenuButton(icon: "house.fill")
-                Spacer()
-                MenuButton(icon: "calendar")
-                Spacer()
-                MenuButton(icon: "checkmark.circle")
-                Spacer()
-                MenuButton(icon: "book.fill", action: {
-                    showSchülerausweis = true
-                })
-            }
-            .padding()
-            .background(Color.gray.opacity(0.9))
-            .cornerRadius(25)
-            .padding(.horizontal, 30)
+            TabBarButton(icon: "book.fill", index: 1, selectedTab: $selectedTab)
         }
+        .padding()
+        .background(Color.gray.opacity(0.9))
+        .cornerRadius(25)
+        .frame(maxWidth: 300)
+        .shadow(radius: 5)
     }
 }
 
-struct MenuButton: View {
+struct TabBarButton: View {
     var icon: String
-    var action: (() -> Void)? = nil
+    var index: Int
+    @Binding var selectedTab: Int
 
     var body: some View {
         Button(action: {
-            action?()
-            print("\(icon) gedrückt")
+            selectedTab = index
         }) {
             Image(systemName: icon)
                 .resizable()
                 .scaledToFit()
                 .frame(width: 25, height: 25)
-                .foregroundColor(.white)
+                .foregroundColor(selectedTab == index ? .blue : .white)
         }
     }
 }
