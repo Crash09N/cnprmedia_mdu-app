@@ -110,7 +110,7 @@ struct TimetableView: View {
                 }
                 .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
             }
-            .navigationBarTitle("Timetable", displayMode: .inline)
+            .navigationBarTitle("Stundenplan", displayMode: .inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Zurück") { presentationMode.wrappedValue.dismiss() }
