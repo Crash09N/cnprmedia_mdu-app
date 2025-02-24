@@ -8,25 +8,34 @@
 import SwiftUI
 
 struct ContentView: View {
+    @State private var showSchülerausweis = false
+
     var body: some View {
-        ZStack {
-            ScrollView {
-                VStack(spacing: 20) {
-                    Text("Marienschule Bielefeld")
-                        .font(.largeTitle)
-                        .fontWeight(.bold)
-                        .padding(.top, 20)
-                    
-                    ForEach(0..<5, id: \..self) { _ in
-                        InfoWidget(title: "Elternbrief", content: "Neuster Elternbrief hier...")
-                        InfoWidget(title: "Nächste Stunde", content: "Mathe - H216 - Malek")
-                        InfoWidget(title: "MDU Timers", content: "Hausaufgaben nicht vergessen!")
+        NavigationView {
+            ZStack {
+                ScrollView {
+                    VStack(spacing: 20) {
+                        Text("Marienschule Bielefeld")
+                            .font(.largeTitle)
+                            .fontWeight(.bold)
+                            .padding(.top, 20)
+                        
+                        ForEach(0..<5, id: \..self) { _ in
+                            InfoWidget(title: "Elternbrief", content: "Neuster Elternbrief hier...")
+                            InfoWidget(title: "Nächste Stunde", content: "Mathe - H216 - Malek")
+                            InfoWidget(title: "MDU Timers", content: "Hausaufgaben nicht vergessen!")
+                        }
                     }
+                    .padding(.bottom, 70)
                 }
-                .padding(.bottom, 70)
+                
+                FloatingMenuBar(showSchülerausweis: $showSchülerausweis)
             }
-            
-            FloatingMenuBar()
+            .navigationTitle("Home")
+            .navigationBarHidden(true)
+        }
+        .fullScreenCover(isPresented: $showSchülerausweis) {
+            Schülerausweis()
         }
     }
 }
@@ -54,6 +63,8 @@ struct InfoWidget: View {
 }
 
 struct FloatingMenuBar: View {
+    @Binding var showSchülerausweis: Bool
+
     var body: some View {
         VStack {
             Spacer()
@@ -64,7 +75,9 @@ struct FloatingMenuBar: View {
                 Spacer()
                 MenuButton(icon: "checkmark.circle")
                 Spacer()
-                MenuButton(icon: "book.fill")
+                MenuButton(icon: "book.fill", action: {
+                    showSchülerausweis = true
+                })
             }
             .padding()
             .background(Color.gray.opacity(0.9))
@@ -76,9 +89,11 @@ struct FloatingMenuBar: View {
 
 struct MenuButton: View {
     var icon: String
-    
+    var action: (() -> Void)? = nil
+
     var body: some View {
         Button(action: {
+            action?()
             print("\(icon) gedrückt")
         }) {
             Image(systemName: icon)
