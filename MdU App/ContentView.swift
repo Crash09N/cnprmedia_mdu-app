@@ -7,8 +7,12 @@
 
 import SwiftUI
 
+enum Page {
+    case home, calendar, tasks, studentID
+}
+
 struct ContentView: View {
-    @State private var currentPage: FloatingMenuBar.Page = .home
+    @State private var currentPage: Page = .home
     
     var body: some View {
         ZStack {
@@ -27,7 +31,11 @@ struct ContentView: View {
             }
             
             // Floating menu bar
-            FloatingMenuBar(currentPage: $currentPage)
+            VStack {
+                Spacer()
+                CustomFloatingMenuBar(currentPage: $currentPage)
+                    .padding(.bottom, 0) // Menüleiste weiter unten
+            }
         }
     }
 }
@@ -42,7 +50,7 @@ struct HomeView: View {
                         .fontWeight(.bold)
                         .padding(.top, 20)
                     
-                    ForEach(0..<5, id: \.self) { _ in
+                    ForEach(0..<5, id: \ .self) { index in
                         InfoWidget(title: "Elternbrief", content: "Neuster Elternbrief hier...")
                         InfoWidget(title: "Nächste Stunde", content: "Mathe - H216 - Malek")
                         InfoWidget(title: "MDU Timers", content: "Hausaufgaben nicht vergessen!")
@@ -63,18 +71,53 @@ struct InfoWidget: View {
     var body: some View {
         VStack(alignment: .leading) {
             Text(title)
-                .font(.title)
+                .font(.title2)
                 .foregroundColor(.black)
             Text(content)
                 .foregroundColor(.gray)
                 .font(.body)
         }
         .padding()
-        .frame(maxWidth: .infinity, minHeight: 150, alignment: .leading)
+        .frame(maxWidth: .infinity, minHeight: 140, alignment: .leading)
         .background(Color.white)
-        .cornerRadius(10)
-        .shadow(radius: 3)
+        .cornerRadius(16) // Mehr abgerundet
+        .shadow(radius: 5)
         .padding(.horizontal)
+    }
+}
+
+struct CustomFloatingMenuBar: View {
+    @Binding var currentPage: Page
+    
+    var body: some View {
+        HStack {
+            Spacer()
+            Button(action: { currentPage = .home }) {
+                Image(systemName: "house.fill")
+                    .foregroundColor(currentPage == .home ? .blue : .white)
+            }
+            Spacer()
+            Button(action: { currentPage = .calendar }) {
+                Image(systemName: "calendar")
+                    .foregroundColor(currentPage == .calendar ? .blue : .white)
+            }
+            Spacer()
+            Button(action: { currentPage = .tasks }) {
+                Image(systemName: "list.bullet")
+                    .foregroundColor(currentPage == .tasks ? .blue : .white)
+            }
+            Spacer()
+            Button(action: { currentPage = .studentID }) {
+                Image(systemName: "person.crop.rectangle")
+                    .foregroundColor(currentPage == .studentID ? .blue : .white)
+            }
+            Spacer()
+        }
+        .padding()
+        .background(Color(.darkGray)) // Dunkelgraue Farbe
+        .clipShape(Capsule()) // Schmaler
+        .frame(width: 250, height: 50) // Schmalere Leiste
+        .shadow(radius: 10)
     }
 }
 
