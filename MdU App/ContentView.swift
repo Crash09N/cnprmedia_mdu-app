@@ -22,11 +22,11 @@ struct ContentView: View {
                 case .home:
                     HomeView(currentPage: $currentPage)
                 case .calendar:
-                    Text("Kalendar View")
+                    TimetableView()
                 case .tasks:
-                    Text("Aufgaben View")
+                    Text("Tasks")
                 case .studentID:
-                    Text("Schülerausweis View")
+                    Schülerausweis()
                 case .webView:
                     WebViewContainer(currentPage: $currentPage)
                 }
