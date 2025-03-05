@@ -6,9 +6,10 @@
 //
 
 import SwiftUI
+import WebKit
 
 enum Page {
-    case home, calendar, tasks, studentID
+    case home, calendar, tasks, studentID, webView
 }
 
 struct ContentView: View {
@@ -16,31 +17,35 @@ struct ContentView: View {
     
     var body: some View {
         ZStack {
-            // Main content
             Group {
                 switch currentPage {
                 case .home:
-                    HomeView()
+                    HomeView(currentPage: $currentPage)
                 case .calendar:
-                    TimetableView()
+                    Text("Kalender View")
                 case .tasks:
-                    Text("Tasks View") // Placeholder for tasks view
+                    Text("Aufgaben View")
                 case .studentID:
-                    Schülerausweis()
+                    Text("Schülerausweis View")
+                case .webView:
+                    WebViewContainer(currentPage: $currentPage)
                 }
             }
             
-            // Floating menu bar
-            VStack {
-                Spacer()
-                CustomFloatingMenuBar(currentPage: $currentPage)
-                    .padding(.bottom, 0) // Menüleiste weiter unten
+            if currentPage != .webView {
+                VStack {
+                    Spacer()
+                    CustomFloatingMenuBar(currentPage: $currentPage)
+                        .padding(.bottom, 0)
+                }
             }
         }
     }
 }
 
 struct HomeView: View {
+    @Binding var currentPage: Page
+    
     var body: some View {
         NavigationView {
             ScrollView {
@@ -50,13 +55,35 @@ struct HomeView: View {
                         .fontWeight(.bold)
                         .padding(.top, 20)
                     
-                    ForEach(0..<5, id: \ .self) { index in
-                        InfoWidget(title: "Elternbrief", content: "Neuster Elternbrief hier...")
-                        InfoWidget(title: "Nächste Stunde", content: "Mathe - H216 - Malek")
-                        InfoWidget(title: "MDU Timers", content: "Hausaufgaben nicht vergessen!")
+                    Button(action: { currentPage = .webView }) {
+                        ZStack {
+                            AsyncImage(url: URL(string: "https://marienschule-bielefeld.de/wp-content/uploads/marienschule-header.jpg")) { image in
+                                image.resizable()
+                                    .scaledToFill()
+                                    .frame(width: UIScreen.main.bounds.width - 40, height: 150)
+                                    .clipped()
+                            } placeholder: {
+                                Color.gray
+                            }
+                            .cornerRadius(30)
+                            
+                            VStack {
+                                Text("Homepage")
+                                    .font(.largeTitle)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.white)
+                                    .shadow(radius: 5)
+                                    .padding(.top, 10)
+                                Spacer()
+                            }
+                            .frame(width: UIScreen.main.bounds.width - 40, height: 150)
+                        }
+                        .frame(width: UIScreen.main.bounds.width - 40, height: 150)
+                        .cornerRadius(30)
+                        .padding(.horizontal, 20)
+                        .padding(.top, 20)
                     }
                 }
-                .padding(.bottom, 70)
             }
             .navigationTitle("Home")
             .navigationBarHidden(true)
@@ -64,25 +91,77 @@ struct HomeView: View {
     }
 }
 
-struct InfoWidget: View {
-    var title: String
-    var content: String
+struct WebViewContainer: View {
+    @Binding var currentPage: Page
+    @State private var webView = WKWebView()
+    @State private var isLoading = true
     
     var body: some View {
-        VStack(alignment: .leading) {
-            Text(title)
-                .font(.title2)
-                .foregroundColor(.black)
-            Text(content)
-                .foregroundColor(.gray)
-                .font(.body)
+        VStack {
+            HStack {
+                Button(action: { currentPage = .home }) {
+                    Image(systemName: "arrow.left")
+                        .font(.title)
+                        .foregroundColor(.blue)
+                }
+                .padding()
+            }
+            
+            ZStack {
+                WebView(webView: webView, url: URL(string: "https://marienschule-bielefeld.de")!, isLoading: $isLoading)
+                    .edgesIgnoringSafeArea(.all)
+                
+                if isLoading {
+                    ProgressView()
+                        .progressViewStyle(CircularProgressViewStyle(tint: .blue))
+                        .scaleEffect(2)
+                }
+            }
         }
-        .padding()
-        .frame(maxWidth: .infinity, minHeight: 140, alignment: .leading)
-        .background(Color.white)
-        .cornerRadius(16) // Mehr abgerundet
-        .shadow(radius: 5)
-        .padding(.horizontal)
+    }
+}
+
+struct WebView: UIViewRepresentable {
+    var webView: WKWebView
+    let url: URL
+    @Binding var isLoading: Bool
+    
+    func makeUIView(context: Context) -> WKWebView {
+        webView.navigationDelegate = context.coordinator
+        let request = URLRequest(url: url)
+        webView.load(request)
+        return webView
+    }
+    
+    func updateUIView(_ uiView: WKWebView, context: Context) {}
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+    
+    class Coordinator: NSObject, WKNavigationDelegate {
+        var parent: WebView
+        
+        init(_ parent: WebView) {
+            self.parent = parent
+        }
+        
+        func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
+            parent.isLoading = true
+        }
+        
+        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+            parent.isLoading = false
+        }
+        
+        func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+            if let url = navigationAction.request.url, navigationAction.navigationType == .linkActivated {
+                UIApplication.shared.open(url)
+                decisionHandler(.cancel)
+            } else {
+                decisionHandler(.allow)
+            }
+        }
     }
 }
 
@@ -114,15 +193,9 @@ struct CustomFloatingMenuBar: View {
             Spacer()
         }
         .padding()
-        .background(Color(.darkGray)) // Dunkelgraue Farbe
-        .clipShape(Capsule()) // Schmaler
-        .frame(width: 250, height: 50) // Schmalere Leiste
+        .background(Color(.darkGray))
+        .clipShape(Capsule())
+        .frame(width: 250, height: 50)
         .shadow(radius: 10)
     }
-}
-
-struct ContentView_Previews: PreviewProvider {
-    static var previews: some View {
-        ContentView()
-    }
-}
+} 
