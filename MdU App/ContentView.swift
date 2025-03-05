@@ -22,7 +22,6 @@ struct ContentView: View {
                 case .home:
                     HomeView(currentPage: $currentPage)
                 case .calendar:
-                    Text("Kalender View")
                 case .tasks:
                     Text("Aufgaben View")
                 case .studentID:
