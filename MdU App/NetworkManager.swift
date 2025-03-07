@@ -57,7 +57,7 @@ class NetworkManager {
     private let backendBaseURL = "http://localhost:8080/api"
     
     // Direct WordPress API URL as fallback
-    private let wordpressAPIURL = "https://marienschule-bielefeld.de/wp-json/wp/v2/posts?_embed=true&per_page=20&context=view"
+    private let wordpressAPIURL = "https://marienschule-bielefeld.de/wp-json/wp/v2/posts?_embed=true&per_page=20"
     
     // Local cache for articles
     private var cachedArticles: [WordPressArticle] = []
@@ -164,8 +164,8 @@ class NetworkManager {
     }
     
     private func fetchDirectFromWordPress(completion: @escaping ([WordPressArticle]?, Error?) -> Void) {
-        // Add parameters to ensure we get full content without any filtering
-        let fullContentURL = wordpressAPIURL + "&_fields=id,date,title,content,excerpt,link,featured_media,_links,_embedded"
+        // Add parameters to ensure we get full content
+        let fullContentURL = wordpressAPIURL + "&context=view&_fields=id,date,title,content,excerpt,link,featured_media,_links,_embedded"
         
         guard let url = URL(string: fullContentURL) else {
             completion(nil, NSError(domain: "Invalid WordPress API URL", code: 0, userInfo: nil))
@@ -174,16 +174,13 @@ class NetworkManager {
         
         // Create a request with increased timeout for potentially large content
         var request = URLRequest(url: url)
-        request.timeoutInterval = 120.0 // 2 minutes to allow for very large content
+        request.timeoutInterval = 60.0 // 60 seconds to allow for larger content
         request.cachePolicy = .reloadIgnoringLocalCacheData // Force fresh content
-        
-        print("DEBUG: Fetching WordPress content from URL: \(fullContentURL)")
         
         let task = URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
             guard let self = self else { return }
             
             if let error = error {
-                print("DEBUG: Error fetching WordPress content: \(error.localizedDescription)")
                 DispatchQueue.main.async {
                     // If network error, try to use cached articles if available
                     if !self.cachedArticles.isEmpty {
@@ -196,12 +193,7 @@ class NetworkManager {
                 return
             }
             
-            if let httpResponse = response as? HTTPURLResponse {
-                print("DEBUG: WordPress API response status code: \(httpResponse.statusCode)")
-            }
-            
             guard let data = data else {
-                print("DEBUG: No data received from WordPress API")
                 DispatchQueue.main.async {
                     if !self.cachedArticles.isEmpty {
                         completion(self.cachedArticles, nil)
@@ -210,11 +202,6 @@ class NetworkManager {
                     }
                 }
                 return
-            }
-            
-            // Print the raw response for debugging
-            if let responseString = String(data: data, encoding: .utf8) {
-                print("DEBUG: First 500 chars of WordPress response: \(String(responseString.prefix(500)))")
             }
             
             do {
@@ -247,8 +234,6 @@ class NetworkManager {
                         
                         // Process the content to ensure it's complete
                         let processedContent = self.processWordPressContent(contentRendered)
-                        
-                        print("DEBUG: Article ID \(id) content length: \(processedContent.count) characters")
                         
                         let title = WordPressArticle.RenderedContent(rendered: titleRendered)
                         let content = WordPressArticle.RenderedContent(rendered: processedContent)
@@ -331,40 +316,6 @@ class NetworkManager {
         processedContent = processedContent.replacingOccurrences(
             of: "\\[\\/?[^\\]]+\\]",
             with: "",
-            options: .regularExpression
-        )
-        
-        // Fix WordPress "Continue reading" links
-        processedContent = processedContent.replacingOccurrences(
-            of: "<span id=\"more-[0-9]+\"></span>",
-            with: "",
-            options: .regularExpression
-        )
-        
-        // Fix WordPress pagination
-        processedContent = processedContent.replacingOccurrences(
-            of: "<!--nextpage-->",
-            with: "",
-            options: .regularExpression
-        )
-        
-        // Fix WordPress image sizing issues
-        processedContent = processedContent.replacingOccurrences(
-            of: "width=\"[0-9]+\"",
-            with: "width=\"100%\"",
-            options: .regularExpression
-        )
-        
-        processedContent = processedContent.replacingOccurrences(
-            of: "height=\"[0-9]+\"",
-            with: "height=\"auto\"",
-            options: .regularExpression
-        )
-        
-        // Fix WordPress iframes
-        processedContent = processedContent.replacingOccurrences(
-            of: "<iframe([^>]+)>",
-            with: "<iframe$1 width=\"100%\" frameborder=\"0\" allowfullscreen>",
             options: .regularExpression
         )
         

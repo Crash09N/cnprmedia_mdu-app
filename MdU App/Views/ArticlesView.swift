@@ -270,10 +270,6 @@ struct ArticlesView: View {
         isLoading = true
         errorMessage = nil
         
-        // Clear cache to force fresh content
-        UserDefaults.standard.removeObject(forKey: "cachedArticles")
-        UserDefaults.standard.removeObject(forKey: "lastCacheUpdate")
-        
         NetworkManager.shared.fetchWordPressArticles { articles, error in
             isLoading = false
             
@@ -282,19 +278,10 @@ struct ArticlesView: View {
             
             if let error = error {
                 errorMessage = "Fehler beim Laden der Artikel: \(error.localizedDescription)"
-                print("DEBUG: Error loading articles: \(error.localizedDescription)")
             } else if let articles = articles {
                 self.articles = articles
-                print("DEBUG: Successfully loaded \(articles.count) articles")
-                
-                // Print content length of first article for debugging
-                if let firstArticle = articles.first {
-                    print("DEBUG: First article content length: \(firstArticle.content.rendered.count) characters")
-                    print("DEBUG: First article title: \(firstArticle.title.plainText)")
-                }
             } else {
                 errorMessage = "Unbekannter Fehler beim Laden der Artikel"
-                print("DEBUG: Unknown error loading articles")
             }
         }
     }
@@ -647,30 +634,6 @@ struct FixedArticleDetailView: View {
                                 ArticleContentView(htmlContent: article.content.rendered, viewWidth: contentWidth)
                                     .frame(width: contentWidth)
                                 
-                                // Direct link to view in browser
-                                Button(action: {
-                                    if let url = URL(string: article.link) {
-                                        UIApplication.shared.open(url)
-                                    }
-                                }) {
-                                    HStack {
-                                        Text("Vollständigen Artikel im Browser anzeigen")
-                                            .font(.system(size: 16, weight: .medium))
-                                            .foregroundColor(.blue)
-                                        
-                                        Image(systemName: "arrow.up.right.square")
-                                            .font(.system(size: 16))
-                                            .foregroundColor(.blue)
-                                    }
-                                    .padding(.vertical, 12)
-                                    .frame(maxWidth: .infinity)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 8)
-                                            .stroke(Color.blue.opacity(0.5), lineWidth: 1)
-                                    )
-                                }
-                                .padding(.top, 16)
-                                
                                 // Bottom padding
                                 Spacer(minLength: 30)
                             }
@@ -785,9 +748,6 @@ struct ArticleContentView: UIViewRepresentable {
         
         // Process the HTML content to fix common WordPress issues
         let processedContent = processWordPressContent(htmlContent)
-        
-        print("DEBUG: Original content length: \(htmlContent.count) characters")
-        print("DEBUG: Processed content length: \(processedContent.count) characters")
         
         // Prepare HTML with modern styling
         let styledHTML = """
@@ -971,29 +931,6 @@ struct ArticleContentView: UIViewRepresentable {
                     justify-content: center;
                     position: relative;
                 }
-                /* Fix for WordPress more tag */
-                .more-link {
-                    display: none;
-                }
-                /* Fix for WordPress pagination */
-                .page-links {
-                    display: none;
-                }
-                /* Fix for WordPress captions */
-                .wp-caption {
-                    max-width: 100%;
-                    margin: 20px 0;
-                }
-                .wp-caption img {
-                    max-width: 100%;
-                    height: auto !important;
-                }
-                .wp-caption-text {
-                    font-size: 14px;
-                    color: #666;
-                    text-align: center;
-                    margin-top: 8px;
-                }
             </style>
         </head>
         <body>
@@ -1002,7 +939,6 @@ struct ArticleContentView: UIViewRepresentable {
         </html>
         """
         
-        // Try to use NSAttributedString for rendering
         if let attributedString = try? NSAttributedString(
             data: Data(styledHTML.utf8),
             options: [.documentType: NSAttributedString.DocumentType.html,
@@ -1010,33 +946,8 @@ struct ArticleContentView: UIViewRepresentable {
             documentAttributes: nil
         ) {
             uiView.attributedText = attributedString
-            print("DEBUG: Successfully rendered HTML with NSAttributedString")
         } else {
-            // Fallback to direct HTML rendering using UITextView's built-in HTML support
-            print("DEBUG: Failed to render with NSAttributedString, falling back to direct HTML")
-            
-            // Create a simpler HTML version for direct rendering
-            let simpleHTML = """
-            <html>
-            <head>
-                <meta name="viewport" content="width=\(contentWidth), initial-scale=1.0">
-                <style>
-                    body { font-size: 16px; line-height: 1.6; }
-                    img { max-width: 100%; height: auto; }
-                </style>
-            </head>
-            <body>
-                \(processedContent)
-            </body>
-            </html>
-            """
-            
-            uiView.text = nil // Clear existing text
-            
-            // Load the HTML directly
-            DispatchQueue.main.async {
-                uiView.loadHTMLString(simpleHTML, baseURL: nil)
-            }
+            uiView.text = processedContent
         }
         
         // Set a fixed width for the text view
@@ -1104,20 +1015,6 @@ struct ArticleContentView: UIViewRepresentable {
         // Remove any WordPress shortcodes that might be causing issues
         processedContent = processedContent.replacingOccurrences(
             of: "\\[\\/?[^\\]]+\\]",
-            with: "",
-            options: .regularExpression
-        )
-        
-        // Fix WordPress "Continue reading" links
-        processedContent = processedContent.replacingOccurrences(
-            of: "<span id=\"more-[0-9]+\"></span>",
-            with: "",
-            options: .regularExpression
-        )
-        
-        // Fix WordPress pagination
-        processedContent = processedContent.replacingOccurrences(
-            of: "<!--nextpage-->",
             with: "",
             options: .regularExpression
         )
