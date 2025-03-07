@@ -495,15 +495,14 @@ struct CustomFloatingMenuBar: View {
             Button(action: { currentPage = .studentID }) {
                 Image(systemName: "person.crop.rectangle")
                     .foregroundColor(currentPage == .studentID ? .blue : .white)
+                
             }
-            Spacer()
+            .padding()
+            .background(Color(.darkGray))
+            .clipShape(Capsule())
+            .frame(width: 250, height: 50)
+            .shadow(radius: 10)
         }
-        .padding()
-        .background(Color(.darkGray))
-        .clipShape(Capsule())
-        .frame(width: 250, height: 50)
-        .shadow(radius: 10)
     }
+    
 }
-
-
