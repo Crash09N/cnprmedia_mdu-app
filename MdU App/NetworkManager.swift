@@ -57,7 +57,7 @@ class NetworkManager {
     private let backendBaseURL = "http://localhost:8080/api"
     
     // Direct WordPress API URL as fallback
-    private let wordpressAPIURL = "https://marienschule-bielefeld.de/wp-json/wp/v2/posts?_embed&per_page=20"
+    private let wordpressAPIURL = "https://marienschule-bielefeld.de/wp-json/wp/v2/posts?_embed=true&per_page=20"
     
     // Local cache for articles
     private var cachedArticles: [WordPressArticle] = []
@@ -109,16 +109,32 @@ class NetworkManager {
             return
         }
         
-        let task = URLSession.shared.dataTask(with: url) { [weak self] data, response, error in
+        // Create a URLRequest with a timeout
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 5.0 // 5 second timeout to quickly detect if backend is offline
+        
+        let task = URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
             guard let self = self else { return }
             
+            // Check for timeout or connection error
             if let error = error {
-                // Backend request failed
+                print("DEBUG: Backend connection failed: \(error.localizedDescription)")
+                self.usingBackend = false
                 completion(nil, error)
                 return
             }
             
+            // Check for HTTP status code
+            if let httpResponse = response as? HTTPURLResponse, !(200...299).contains(httpResponse.statusCode) {
+                print("DEBUG: Backend returned error status code: \(httpResponse.statusCode)")
+                self.usingBackend = false
+                completion(nil, NSError(domain: "HTTP Error", code: httpResponse.statusCode, userInfo: nil))
+                return
+            }
+            
             guard let data = data else {
+                print("DEBUG: No data received from backend")
+                self.usingBackend = false
                 completion(nil, NSError(domain: "No data received", code: 0, userInfo: nil))
                 return
             }
@@ -131,11 +147,15 @@ class NetworkManager {
                 self.lastCacheUpdate = Date()
                 self.saveCachedArticles()
                 
+                // Backend is working
+                self.usingBackend = true
+                
                 DispatchQueue.main.async {
                     completion(articles, nil)
                 }
             } catch {
                 print("DEBUG: Error decoding backend response: \(error)")
+                self.usingBackend = false
                 completion(nil, error)
             }
         }
@@ -144,12 +164,20 @@ class NetworkManager {
     }
     
     private func fetchDirectFromWordPress(completion: @escaping ([WordPressArticle]?, Error?) -> Void) {
-        guard let url = URL(string: wordpressAPIURL) else {
+        // Add parameters to ensure we get full content
+        let fullContentURL = wordpressAPIURL + "&context=view&_fields=id,date,title,content,excerpt,link,featured_media,_links,_embedded"
+        
+        guard let url = URL(string: fullContentURL) else {
             completion(nil, NSError(domain: "Invalid WordPress API URL", code: 0, userInfo: nil))
             return
         }
         
-        let task = URLSession.shared.dataTask(with: url) { [weak self] data, response, error in
+        // Create a request with increased timeout for potentially large content
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 60.0 // 60 seconds to allow for larger content
+        request.cachePolicy = .reloadIgnoringLocalCacheData // Force fresh content
+        
+        let task = URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
             guard let self = self else { return }
             
             if let error = error {
@@ -204,8 +232,11 @@ class NetworkManager {
                             featuredMediaURL = sourceURL
                         }
                         
+                        // Process the content to ensure it's complete
+                        let processedContent = self.processWordPressContent(contentRendered)
+                        
                         let title = WordPressArticle.RenderedContent(rendered: titleRendered)
-                        let content = WordPressArticle.RenderedContent(rendered: contentRendered)
+                        let content = WordPressArticle.RenderedContent(rendered: processedContent)
                         let excerpt = WordPressArticle.RenderedContent(rendered: excerptRendered)
                         
                         let article = WordPressArticle(
@@ -245,6 +276,50 @@ class NetworkManager {
         }
         
         task.resume()
+    }
+    
+    // Helper method to process WordPress content
+    private func processWordPressContent(_ content: String) -> String {
+        // Remove any truncation markers that WordPress might add
+        var processedContent = content
+        
+        // Replace any "[&hellip;]" or similar truncation markers
+        processedContent = processedContent.replacingOccurrences(of: "\\[&hellip;\\]", with: "", options: .regularExpression)
+        
+        // Fix any incomplete HTML tags
+        if !processedContent.contains("</p>") && processedContent.contains("<p>") {
+            processedContent += "</p>"
+        }
+        
+        // Fix WordPress "read more" links
+        processedContent = processedContent.replacingOccurrences(
+            of: "<a class=\"more-link\"[^>]*>.*?</a>",
+            with: "",
+            options: .regularExpression
+        )
+        
+        // Fix WordPress protected content placeholders
+        processedContent = processedContent.replacingOccurrences(
+            of: "\\(Passwortgeschützer Inhalt\\)",
+            with: "",
+            options: .regularExpression
+        )
+        
+        // Fix WordPress excerpt ellipsis
+        processedContent = processedContent.replacingOccurrences(
+            of: "&hellip;",
+            with: "...",
+            options: .regularExpression
+        )
+        
+        // Remove any WordPress shortcodes that might be causing issues
+        processedContent = processedContent.replacingOccurrences(
+            of: "\\[\\/?[^\\]]+\\]",
+            with: "",
+            options: .regularExpression
+        )
+        
+        return processedContent
     }
     
     func fetchImage(for article: WordPressArticle, completion: @escaping (Data?, Error?) -> Void) {
