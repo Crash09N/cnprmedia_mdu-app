@@ -3,8 +3,6 @@ package de.marienschule.api;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -23,7 +21,6 @@ import java.util.stream.Collectors;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
-@SpringBootApplication
 @RestController
 @EnableScheduling
 @RequestMapping("/api")
@@ -62,10 +59,6 @@ public class WordPressService {
             serverStatus.setMessage("Fehler beim Initialisieren des Caches: " + e.getMessage());
             saveServerStatus();
         }
-    }
-    
-    public static void main(String[] args) {
-        SpringApplication.run(WordPressService.class, args);
     }
     
     @GetMapping("/status")

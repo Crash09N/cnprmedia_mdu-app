@@ -1,68 +1,112 @@
-# Marienschule Bielefeld Backend
+# Marienschule Backend
 
-This is a Java Spring Boot backend service for the Marienschule Bielefeld app. It fetches WordPress articles from the school's website, caches them locally, and provides them to the app via a REST API.
+Dieses Backend bietet REST-API-Endpunkte für die MdU App, um Benutzer gegen eine Nextcloud-Instanz zu authentifizieren und Benutzerdaten zu verwalten.
 
-## Features
+## Funktionen
 
-- Fetches the latest 20 articles from the Marienschule Bielefeld WordPress site
-- Caches articles and images locally for offline access
-- Provides a REST API for the app to retrieve articles and images
-- Automatically refreshes the cache every hour
-- Ensures stability by decoupling the app from direct WordPress API calls
+- Authentifizierung gegen Nextcloud
+- Extraktion von Benutzerdaten (Name, E-Mail, Klasse)
+- Speicherung der Daten in JSON-Dateien
+- REST-API-Endpunkte für die iOS-App
 
-## Requirements
+## Voraussetzungen
 
-- Java 11 or higher
-- Maven 3.6 or higher
+- Java 11 oder höher
+- Maven
 
-## Setup and Running
+## Konfiguration
 
-1. Clone this repository
-2. Navigate to the project directory
-3. Build the project:
-   ```
-   mvn clean package
-   ```
-4. Run the application:
-   ```
-   java -jar target/marienschule-backend-1.0.0.jar
-   ```
-   
-The server will start on port 8080 by default.
+Die Konfiguration erfolgt über die Datei `src/main/resources/application.properties`. Hier können Sie das Datenverzeichnis und andere Einstellungen anpassen.
 
-## API Endpoints
+```properties
+# Datenverzeichnis für JSON-Dateien
+app.data.directory=./data
+```
 
-- `GET /api/articles` - Get all cached articles (up to 20)
-- `GET /api/articles/{id}` - Get a specific article by ID
-- `GET /api/images/{filename}` - Get a cached image by filename
+## Datenspeicherung
 
-## Cache
+Die Benutzerdaten werden in einer JSON-Datei im konfigurierten Datenverzeichnis gespeichert. Die Datei wird automatisch erstellt, wenn sie nicht existiert.
 
-The application caches data in the following locations:
-- Articles: `cache/articles.json`
-- Images: `cache/images/`
+- Benutzerdaten: `data/users.json`
 
-The cache is refreshed automatically every hour or when it expires (after 1 hour of inactivity).
+## Starten des Backends
 
-## Integration with the iOS App
+Sie können das Backend mit dem folgenden Befehl starten:
 
-To integrate this backend with your iOS app, update your NetworkManager to point to this backend service instead of directly accessing the WordPress API.
+```bash
+./start.sh
+```
 
-Example Swift code:
+Oder manuell mit Maven:
 
-```swift
-func fetchWordPressArticles(completion: @escaping ([WordPressArticle]?, Error?) -> Void) {
-    let urlString = "http://your-server-address:8080/api/articles"
-    
-    guard let url = URL(string: urlString) else {
-        completion(nil, NSError(domain: "Invalid URL", code: 0, userInfo: nil))
-        return
-    }
-    
-    let task = URLSession.shared.dataTask(with: url) { data, response, error in
-        // Process response...
-    }
-    
-    task.resume()
+```bash
+mvn spring-boot:run
+```
+
+Alternativ können Sie es auch als JAR-Datei bauen und ausführen:
+
+```bash
+mvn clean package
+java -jar target/marienschule-backend-1.0.0.jar
+```
+
+## API-Endpunkte
+
+### Anmeldung
+
+```
+POST /api/login
+```
+
+Anfrage:
+```json
+{
+  "username": "benutzername",
+  "password": "passwort"
 }
-``` 
+```
+
+Antwort:
+```json
+{
+  "success": true,
+  "user_id": 1,
+  "username": "benutzername",
+  "first_name": "Max",
+  "last_name": "Mustermann",
+  "email": "max.mustermann@example.com",
+  "school_class": "Q1",
+  "webdav_url": "https://nextcloud.example.com/remote.php/dav/files/benutzername/"
+}
+```
+
+### Benutzerdaten aktualisieren
+
+```
+POST /api/refresh
+```
+
+Anfrage:
+```json
+{
+  "username": "benutzername",
+  "password": "passwort"
+}
+```
+
+Antwort: (wie bei /api/login)
+
+### Benutzerdaten abrufen
+
+```
+POST /api/user
+```
+
+Anfrage:
+```json
+{
+  "username": "benutzername"
+}
+```
+
+Antwort: (wie bei /api/login) 

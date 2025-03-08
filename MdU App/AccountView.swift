@@ -8,8 +8,15 @@
 import SwiftUI
 
 struct AccountView: View {
-    @State private var loggedInUser: User? = nil
-    @State private var showRegister = false
+    @StateObject private var oauthService = OAuthService()
+    @State private var selectedTab = 0
+    @State private var user: UserEntity? = nil
+    @State private var showingError = false
+    @State private var errorMessage = ""
+    @State private var showingTestLogin = false
+    @State private var username = ""
+    @State private var password = ""
+    @State private var isLoggingIn = false
 
     var body: some View {
         NavigationView {
@@ -17,180 +24,476 @@ struct AccountView: View {
                 LinearGradient(gradient: Gradient(colors: [Color.blue.opacity(0.3), Color.blue.opacity(0.1)]), startPoint: .topLeading, endPoint: .bottomTrailing)
                     .edgesIgnoringSafeArea(.all)
 
-                if let user = loggedInUser {
-                    AccountDetailsView(user: user) { logout() }
+                if let user = user {
+                    VStack(spacing: 0) {
+                        // Tab Picker
+                        Picker("", selection: $selectedTab) {
+                            Text("Profil").tag(0)
+                            Text("Ausweis").tag(1)
+                            Text("Einstellungen").tag(2)
+                        }
+                        .pickerStyle(SegmentedPickerStyle())
+                        .padding(.horizontal)
+                        .padding(.top, 5)
+                        .padding(.bottom, 0)
+                        .background(Color.clear)
+
+                        // Tab Content
+                        TabView(selection: $selectedTab) {
+                            AccountDetailsView(user: user, onLogout: logout)
+                                .tag(0)
+                            SchülerausweisWrapper()
+                                .tag(1)
+                            SettingsView()
+                                .tag(2)
+                        }
+                        .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
+                        .edgesIgnoringSafeArea(.bottom)
+                    }
+                    .edgesIgnoringSafeArea(.bottom)
                 } else {
-                    if showRegister {
-                        RegisterView(loggedInUser: $loggedInUser, showRegister: $showRegister)
-                    } else {
-                        LoginView(loggedInUser: $loggedInUser, showRegister: $showRegister)
+                    ScrollView {
+                        VStack(spacing: 20) {
+                            // Logo oder App-Icon
+                            Image(systemName: "graduationcap.fill")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 80, height: 80)
+                                .foregroundColor(.blue)
+                                .padding(.top, 40)
+                            
+                            Text("Willkommen bei der MdU App")
+                                .font(.largeTitle)
+                                .bold()
+                                .foregroundColor(.blue)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal)
+                            
+                            Text("Bitte melde dich mit deinem Schulkonto an, um auf alle Funktionen zugreifen zu können.")
+                                .font(.body)
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal)
+                                .padding(.bottom, 20)
+                            
+                            // Anmeldeformular
+                            VStack(spacing: 15) {
+                                // Benutzername
+                                HStack {
+                                    Image(systemName: "person.fill")
+                                        .foregroundColor(.blue)
+                                        .frame(width: 30)
+                                    
+                                    TextField("Benutzername", text: $username)
+                                        .autocapitalization(.none)
+                                        .disableAutocorrection(true)
+                                        .padding(.vertical, 10)
+                                }
+                                .padding(.horizontal)
+                                .background(Color(.systemBackground))
+                                .cornerRadius(10)
+                                .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
+                                
+                                // Passwort
+                                HStack {
+                                    Image(systemName: "lock.fill")
+                                        .foregroundColor(.blue)
+                                        .frame(width: 30)
+                                    
+                                    SecureField("Passwort", text: $password)
+                                        .padding(.vertical, 10)
+                                }
+                                .padding(.horizontal)
+                                .background(Color(.systemBackground))
+                                .cornerRadius(10)
+                                .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
+                            }
+                            .padding(.horizontal, 40)
+                            
+                            // Anmelden-Button
+                            Button(action: login) {
+                                if isLoggingIn {
+                                    ProgressView()
+                                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                } else {
+                                    HStack {
+                                        Image(systemName: "person.crop.circle.fill.badge.checkmark")
+                                            .font(.title2)
+                                        Text("Anmelden")
+                                            .fontWeight(.semibold)
+                                    }
+                                }
+                            }
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                            .background(Color.blue)
+                            .foregroundColor(.white)
+                            .cornerRadius(12)
+                            .shadow(radius: 5)
+                            .padding(.horizontal, 40)
+                            .padding(.top, 20)
+                            .disabled(isLoggingIn || username.isEmpty || password.isEmpty)
+                            .opacity((isLoggingIn || username.isEmpty || password.isEmpty) ? 0.7 : 1)
+                            
+                            // Testdaten-Button
+                            Button(action: { showingTestLogin = true }) {
+                                HStack {
+                                    Image(systemName: "hammer.fill")
+                                        .font(.title2)
+                                    Text("Testdaten verwenden")
+                                        .fontWeight(.semibold)
+                                }
+                                .padding()
+                                .frame(maxWidth: .infinity)
+                                .background(Color.orange)
+                                .foregroundColor(.white)
+                                .cornerRadius(12)
+                                .shadow(radius: 5)
+                            }
+                            .padding(.horizontal, 40)
+                            .padding(.top, 10)
+                            .disabled(isLoggingIn)
+                            .opacity(isLoggingIn ? 0.7 : 1)
+                        }
+                        .padding(.bottom, 40)
                     }
                 }
             }
-        }
-    }
-
-    private func logout() {
-        withAnimation {
-            loggedInUser = nil
-        }
-    }
-}
-
-// MARK: - Login View
-struct LoginView: View {
-    @Binding var loggedInUser: User?
-    @Binding var showRegister: Bool
-    @State private var email = ""
-    @State private var password = ""
-    @State private var errorMessage: String?
-
-    var body: some View {
-        VStack(spacing: 20) {
-            Text("Willkommen zurück!")
-                .font(.largeTitle)
-                .bold()
-                .foregroundColor(.blue)
-
-            if let errorMessage = errorMessage {
-                Text(errorMessage).foregroundColor(.red)
+            .navigationBarHidden(true)
+            .onAppear(perform: checkExistingUser)
+            .alert(isPresented: $showingError) {
+                Alert(
+                    title: Text("Fehler bei der Anmeldung"),
+                    message: Text(errorMessage),
+                    dismissButton: .default(Text("OK"))
+                )
             }
-
-            CustomTextField(placeholder: "E-Mail", text: $email)
-            CustomSecureField(placeholder: "Passwort", text: $password)
-
-            Button(action: login) {
-                Text("Anmelden").modifier(CustomButtonStyle(color: .blue))
-            }
-
-            Button(action: { showRegister = true }) {
-                Text("Noch kein Konto? Registrieren").foregroundColor(.blue).padding(.top, 10)
+            .sheet(isPresented: $showingTestLogin) {
+                TestLoginView { testUser in
+                    self.user = testUser
+                    showingTestLogin = false
+                }
             }
         }
-        .padding()
+        .onReceive(oauthService.$error) { error in
+            if let error = error {
+                errorMessage = error.localizedDescription
+                showingError = true
+                isLoggingIn = false
+            }
+        }
     }
-
+    
     private func login() {
-        if let usersData = UserDefaults.standard.data(forKey: "users"),
-           let users = try? JSONDecoder().decode([User].self, from: usersData),
-           let user = users.first(where: { $0.email == email && $0.password == password }) {
-            withAnimation {
-                loggedInUser = user
+        isLoggingIn = true
+        oauthService.loginWithCredentials(username: username, password: password)
+    }
+    
+    private func checkExistingUser() {
+        // Prüfe, ob bereits ein Benutzer in der Datenbank existiert
+        if CoreDataManager.shared.getCurrentUser() != nil {
+            // Prüfe, ob das Token noch gültig ist oder aktualisiert werden muss
+            oauthService.refreshTokenIfNeeded { success in
+                if success {
+                    self.user = CoreDataManager.shared.getCurrentUser()
+                } else {
+                    // Token konnte nicht aktualisiert werden, Benutzer muss sich neu anmelden
+                    CoreDataManager.shared.deleteCurrentUser()
+                }
             }
-        } else {
-            errorMessage = "Falsche E-Mail oder Passwort!"
+        }
+        
+        // Setze den Callback für erfolgreiche Authentifizierung
+        oauthService.onAuthenticationCompleted = { user in
+            self.user = user
+            self.isLoggingIn = false
+        }
+    }
+    
+    private func logout() {
+        oauthService.logout()
+        withAnimation {
+            user = nil
+            username = ""
+            password = ""
         }
     }
 }
 
-// MARK: - Register View
-struct RegisterView: View {
-    @Binding var loggedInUser: User?
-    @Binding var showRegister: Bool
-    @State private var firstName = ""
-    @State private var lastName = ""
-    @State private var email = ""
-    @State private var password = ""
-    @State private var confirmPassword = ""
+// MARK: - Test Login View
+struct TestLoginView: View {
+    @Environment(\.presentationMode) var presentationMode
+    @State private var firstName = "Max"
+    @State private var lastName = "Mustermann"
+    @State private var email = "max.mustermann@marienschule-bielefeld.de"
+    @State private var username = "mmustermann"
+    @State private var schoolClass = "Q1"
     @State private var birthDate = Date()
-    @State private var schoolYear = ""
-    @State private var errorMessage: String?
-
+    @State private var password = "test123"
+    var onLogin: (UserEntity) -> Void
+    
     var body: some View {
-        VStack(spacing: 20) {
-            Text("Neues Konto erstellen")
-                .font(.largeTitle)
-                .bold()
-                .foregroundColor(.blue)
-
-            if let errorMessage = errorMessage {
-                Text(errorMessage).foregroundColor(.red)
+        NavigationView {
+            Form {
+                Section(header: Text("Testbenutzer-Daten")) {
+                    TextField("Vorname", text: $firstName)
+                    TextField("Nachname", text: $lastName)
+                    TextField("E-Mail", text: $email)
+                    TextField("Benutzername", text: $username)
+                    TextField("Klasse", text: $schoolClass)
+                    DatePicker("Geburtsdatum", selection: $birthDate, displayedComponents: .date)
+                    SecureField("Passwort", text: $password)
+                }
+                
+                Section {
+                    Button(action: createTestUser) {
+                        Text("Testbenutzer erstellen")
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.blue)
+                            .cornerRadius(10)
+                    }
+                }
             }
-
-            CustomTextField(placeholder: "Vorname", text: $firstName)
-            CustomTextField(placeholder: "Nachname", text: $lastName)
-            CustomTextField(placeholder: "E-Mail", text: $email)
-            CustomSecureField(placeholder: "Passwort", text: $password)
-            CustomSecureField(placeholder: "Passwort bestätigen", text: $confirmPassword)
-            CustomTextField(placeholder: "Jahrgang (z. B. 2025)", text: $schoolYear)
-            
-            DatePicker("Geburtsdatum", selection: $birthDate, displayedComponents: .date)
-                .datePickerStyle(.compact)
-                .padding()
-
-            Button(action: register) {
-                Text("Registrieren").modifier(CustomButtonStyle(color: .blue))
-            }
-
-            Button(action: { showRegister = false }) {
-                Text("Zurück zum Login").foregroundColor(.blue).padding(.top, 10)
-            }
+            .navigationTitle("Testdaten")
+            .navigationBarItems(trailing: Button("Abbrechen") {
+                presentationMode.wrappedValue.dismiss()
+            })
         }
-        .padding()
     }
-
-    private func register() {
-        guard !firstName.isEmpty, !lastName.isEmpty, !email.isEmpty, !password.isEmpty, !confirmPassword.isEmpty, !schoolYear.isEmpty else {
-            errorMessage = "Bitte fülle alle Felder aus!"
-            return
-        }
-
-        guard password == confirmPassword else {
-            errorMessage = "Passwörter stimmen nicht überein!"
-            return
-        }
-
-        var users = (try? JSONDecoder().decode([User].self, from: UserDefaults.standard.data(forKey: "users") ?? Data())) ?? []
-
-        guard !users.contains(where: { $0.email == email }) else {
-            errorMessage = "Diese E-Mail ist bereits registriert!"
-            return
-        }
-
-        let newUser = User(firstName: firstName, lastName: lastName, email: email, password: password, birthDate: birthDate, schoolYear: schoolYear)
-        users.append(newUser)
-
-        if let encoded = try? JSONEncoder().encode(users) {
-            UserDefaults.standard.set(encoded, forKey: "users")
-        }
-
-        withAnimation {
-            loggedInUser = newUser
+    
+    private func createTestUser() {
+        // Lösche vorhandene Benutzer
+        CoreDataManager.shared.deleteCurrentUser()
+        
+        // Speichere das Passwort in der Keychain
+        KeychainManager.savePassword(password, for: username)
+        
+        // Erstelle einen neuen Testbenutzer
+        let coreDataManager = CoreDataManager.shared
+        coreDataManager.saveUser(
+            firstName: firstName,
+            lastName: lastName,
+            email: email,
+            username: username,
+            birthDate: birthDate,
+            schoolClass: schoolClass,
+            accessToken: "test_access_token",
+            refreshToken: "test_refresh_token",
+            tokenExpiryDate: Date().addingTimeInterval(3600) // Token gültig für 1 Stunde
+        )
+        
+        if let testUser = coreDataManager.getCurrentUser() {
+            onLogin(testUser)
         }
     }
 }
 
 // MARK: - Account Details View
 struct AccountDetailsView: View {
-    let user: User
+    let user: UserEntity
     let onLogout: () -> Void
+    @StateObject private var oauthService = OAuthService()
+    @State private var showingPassword = false
+    @State private var password: String? = nil
+    @State private var isRefreshing = false
+    @State private var showRefreshSuccess = false
 
     var body: some View {
-        VStack(spacing: 20) {
-            Text("Mein Profil")
-                .font(.largeTitle)
-                .bold()
-                .foregroundColor(.blue)
-
-            VStack(spacing: 15) {
-                ProfileCard(icon: "person.fill", label: "Name", value: "\(user.firstName) \(user.lastName)")
-                ProfileCard(icon: "envelope.fill", label: "E-Mail", value: user.email)
-                ProfileCard(icon: "calendar", label: "Geburtsdatum", value: formattedDate(user.birthDate))
-                ProfileCard(icon: "graduationcap.fill", label: "Jahrgang", value: user.schoolYear)
+        ScrollView {
+            VStack(spacing: 12) {
+                // Profilbild
+                Image(systemName: "person.crop.circle.fill")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 70, height: 70)
+                    .foregroundColor(.blue)
+                    .padding(.top, 5)
+                
+                // Name
+                Text("\(user.firstName ?? "") \(user.lastName ?? "")")
+                    .font(.title2)
+                    .fontWeight(.bold)
+                    .foregroundColor(.primary)
+                    .padding(.bottom, 5)
+                
+                // Benutzerinformationen
+                VStack(spacing: 10) {
+                    ProfileInfoRow(icon: "envelope.fill", label: "E-Mail", value: user.email ?? "")
+                    ProfileInfoRow(icon: "person.text.rectangle.fill", label: "Benutzername", value: user.username ?? "")
+                    
+                    if let birthDate = user.birthDate {
+                        ProfileInfoRow(icon: "calendar", label: "Geburtsdatum", value: formatDate(birthDate))
+                    }
+                    
+                    if let schoolClass = user.schoolClass {
+                        ProfileInfoRow(icon: "graduationcap.fill", label: "Klasse", value: schoolClass)
+                    }
+                    
+                    // Passwort-Anzeige mit FaceID/TouchID
+                    HStack {
+                        Image(systemName: "lock.fill")
+                            .foregroundColor(.blue)
+                            .frame(width: 30)
+                        
+                        VStack(alignment: .leading) {
+                            Text("Passwort")
+                                .font(.subheadline)
+                                .foregroundColor(.gray)
+                            
+                            if showingPassword, let password = password {
+                                Text(password)
+                                    .font(.body)
+                                    .fontWeight(.medium)
+                            } else {
+                                Text("••••••••")
+                                    .font(.body)
+                                    .fontWeight(.medium)
+                            }
+                        }
+                        
+                        Spacer()
+                        
+                        Button(action: {
+                            if showingPassword {
+                                showingPassword = false
+                                password = nil
+                            } else {
+                                showPassword()
+                            }
+                        }) {
+                            Image(systemName: showingPassword ? "eye.slash.fill" : "eye.fill")
+                                .foregroundColor(.blue)
+                        }
+                    }
+                    .padding()
+                    .background(Color(.systemBackground))
+                    .cornerRadius(10)
+                    .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
+                    
+                    // Daten aktualisieren Button
+                    Button(action: refreshUserData) {
+                        HStack {
+                            if isRefreshing {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle())
+                                    .scaleEffect(0.8)
+                            } else {
+                                Image(systemName: "arrow.clockwise")
+                            }
+                            Text(isRefreshing ? "Wird aktualisiert..." : "Daten aktualisieren")
+                        }
+                        .padding()
+                        .frame(maxWidth: .infinity)
+                        .background(Color.blue)
+                        .foregroundColor(.white)
+                        .cornerRadius(10)
+                        .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
+                    }
+                    .disabled(isRefreshing)
+                    .opacity(isRefreshing ? 0.7 : 1)
+                    .padding(.top, 10)
+                }
+                .padding(.horizontal)
+                
+                Spacer()
+                
+                // Abmelden-Button
+                Button(action: onLogout) {
+                    HStack {
+                        Image(systemName: "rectangle.portrait.and.arrow.right")
+                        Text("Abmelden")
+                    }
+                    .padding()
+                    .frame(maxWidth: .infinity)
+                    .background(Color.red)
+                    .foregroundColor(.white)
+                    .cornerRadius(12)
+                    .shadow(radius: 5)
+                }
+                .padding(.horizontal)
+                .padding(.bottom, 10)
+                .padding(.top, 10)
             }
-            .padding()
-
-            Button(action: onLogout) {
-                Text("Abmelden").modifier(CustomButtonStyle(color: .red))
+            .padding(.bottom, 50) // Zusätzlicher Abstand am unteren Rand
+        }
+        .padding(.bottom, 0)
+        .alert(isPresented: $showRefreshSuccess) {
+            Alert(
+                title: Text("Daten aktualisiert"),
+                message: Text("Ihre Benutzerdaten wurden erfolgreich aktualisiert."),
+                dismissButton: .default(Text("OK"))
+            )
+        }
+        .onReceive(oauthService.$error) { error in
+            if error != nil {
+                isRefreshing = false
             }
         }
-        .padding()
     }
-
-    private func formattedDate(_ date: Date) -> String {
+    
+    private func showPassword() {
+        guard let username = user.username else { return }
+        
+        oauthService.getPasswordWithBiometricAuth(for: username) { retrievedPassword in
+            if let retrievedPassword = retrievedPassword {
+                self.password = retrievedPassword
+                self.showingPassword = true
+            }
+        }
+    }
+    
+    private func refreshUserData() {
+        guard let username = user.username else { return }
+        
+        isRefreshing = true
+        
+        oauthService.refreshUserData(username: username) { success in
+            isRefreshing = false
+            
+            if success {
+                showRefreshSuccess = true
+            }
+        }
+    }
+    
+    private func formatDate(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
+        formatter.timeStyle = .none
         return formatter.string(from: date)
+    }
+}
+
+// MARK: - Profile Info Row
+struct ProfileInfoRow: View {
+    var icon: String
+    var label: String
+    var value: String
+    
+    var body: some View {
+        HStack {
+            Image(systemName: icon)
+                .foregroundColor(.blue)
+                .frame(width: 30)
+            
+            VStack(alignment: .leading) {
+                Text(label)
+                    .font(.subheadline)
+                    .foregroundColor(.gray)
+                
+                Text(value)
+                    .font(.body)
+                    .fontWeight(.medium)
+            }
+            
+            Spacer()
+        }
+        .padding()
+        .background(Color(.systemBackground))
+        .cornerRadius(10)
+        .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
     }
 }
 
@@ -216,41 +519,6 @@ struct ProfileCard: View {
     }
 }
 
-struct User: Codable {
-    let firstName: String
-    let lastName: String
-    let email: String
-    let password: String
-    let birthDate: Date
-    let schoolYear: String
-}
-
-// MARK: - Benutzerdefinierte Eingabefelder
-struct CustomTextField: View {
-    var placeholder: String
-    @Binding var text: String
-
-    var body: some View {
-        TextField(placeholder, text: $text)
-            .padding()
-            .background(RoundedRectangle(cornerRadius: 12).fill(Color.white).shadow(radius: 2))
-            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.blue, lineWidth: 1))
-            .padding(.horizontal)
-    }
-}
-struct CustomSecureField: View {
-    var placeholder: String
-    @Binding var text: String
-
-    var body: some View {
-        TextField(placeholder, text: $text)
-            .padding()
-            .background(RoundedRectangle(cornerRadius: 12).fill(Color.white).shadow(radius: 2))
-            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.blue, lineWidth: 1))
-            .padding(.horizontal)
-    }
-}
-
 // MARK: - Benutzerdefinierte Button-Stile
 struct CustomButtonStyle: ViewModifier {
     var color: Color
@@ -265,5 +533,61 @@ struct CustomButtonStyle: ViewModifier {
             .cornerRadius(12)
             .shadow(radius: 5)
             .padding(.horizontal)
+    }
+}
+
+// MARK: - Settings View
+struct SettingsView: View {
+    @AppStorage("isDarkMode") private var isDarkMode = false
+    @AppStorage("notificationsEnabled") private var notificationsEnabled = true
+    @AppStorage("autoSync") private var autoSync = true
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 15) {
+                Text("Einstellungen")
+                    .font(.title2)
+                    .bold()
+                    .foregroundColor(.blue)
+                    .padding(.top, 5)
+
+                Form {
+                    Section(header: Text("Erscheinungsbild")) {
+                        Toggle("Dark Mode", isOn: $isDarkMode)
+                    }
+
+                    Section(header: Text("Benachrichtigungen")) {
+                        Toggle("Benachrichtigungen aktivieren", isOn: $notificationsEnabled)
+                    }
+
+                    Section(header: Text("Synchronisation")) {
+                        Toggle("Automatische Synchronisation", isOn: $autoSync)
+                    }
+
+                    Section(header: Text("App-Info")) {
+                        HStack {
+                            Text("Version")
+                            Spacer()
+                            Text("1.0.0")
+                                .foregroundColor(.gray)
+                        }
+                    }
+                }
+                .frame(height: 300)
+                .padding(.bottom, 50)
+            }
+        }
+    }
+}
+
+// MARK: - Schülerausweis Wrapper
+struct SchülerausweisWrapper: View {
+    var body: some View {
+        ScrollView {
+            VStack {
+                Schülerausweis()
+                    .padding(.bottom, 50)
+            }
+        }
     }
 }
