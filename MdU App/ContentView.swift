@@ -473,36 +473,101 @@ struct WebView: UIViewRepresentable {
 
 struct CustomFloatingMenuBar: View {
     @Binding var currentPage: Page
+    @Environment(\.colorScheme) var colorScheme
     
     var body: some View {
-        HStack {
+        VStack {
             Spacer()
-            Button(action: { currentPage = .home }) {
-                Image(systemName: "house.fill")
-                    .foregroundColor(currentPage == .home ? .blue : .white)
+            HStack(spacing: 0) {
+                ForEach([
+                    (page: Page.home, icon: "house.fill", label: "Home"),
+                    (page: Page.calendar, icon: "calendar", label: "Stundenplan"),
+                    (page: Page.tasks, icon: "list.bullet", label: "Aufgaben"),
+                    (page: Page.studentID, icon: "person.crop.rectangle", label: "Ausweis")
+                ], id: \.page) { item in
+                    MenuBarButton(
+                        icon: item.icon,
+                        label: item.label,
+                        isSelected: currentPage == item.page,
+                        action: { withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) { currentPage = item.page } }
+                    )
+                }
             }
-            Spacer()
-            Button(action: { currentPage = .calendar }) {
-                Image(systemName: "calendar")
-                    .foregroundColor(currentPage == .calendar ? .blue : .white)
-            }
-            Spacer()
-            Button(action: { currentPage = .tasks }) {
-                Image(systemName: "list.bullet")
-                    .foregroundColor(currentPage == .tasks ? .blue : .white)
-            }
-            Spacer()
-            Button(action: { currentPage = .studentID }) {
-                Image(systemName: "person.crop.rectangle")
-                    .foregroundColor(currentPage == .studentID ? .blue : .white)
-                
-            }
-            .padding()
-            .background(Color(.darkGray))
-            .clipShape(Capsule())
-            .frame(width: 250, height: 50)
-            .shadow(radius: 10)
+            .padding(.vertical, 8)
+            .padding(.horizontal, 12)
+            .background(
+                ZStack {
+                    if colorScheme == .dark {
+                        Color.black.opacity(0.8)
+                    } else {
+                        Color.white.opacity(0.8)
+                    }
+                }
+                .background(
+                    Material.ultraThinMaterial
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 24))
+                .shadow(color: Color.black.opacity(0.15), radius: 10, x: 0, y: 5)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 24)
+                    .stroke(
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                colorScheme == .dark ? Color.white.opacity(0.2) : Color.white.opacity(0.5),
+                                colorScheme == .dark ? Color.white.opacity(0.05) : Color.white.opacity(0.2)
+                            ]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1
+                    )
+            )
+            .padding(.horizontal, 20)
+            .padding(.bottom, 12)
         }
     }
+}
+
+struct MenuBarButton: View {
+    let icon: String
+    let label: String
+    let isSelected: Bool
+    let action: () -> Void
+    @Environment(\.colorScheme) var colorScheme
     
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 2) {
+                ZStack {
+                    if isSelected {
+                        Circle()
+                            .fill(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [Color.blue, Color.blue.opacity(0.7)]),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .frame(width: 40, height: 40)
+                            .shadow(color: Color.blue.opacity(0.3), radius: 6, x: 0, y: 3)
+                            .transition(.scale.combined(with: .opacity))
+                    }
+                    
+                    Image(systemName: icon)
+                        .font(.system(size: 16, weight: isSelected ? .bold : .regular))
+                        .foregroundColor(isSelected ? .white : (colorScheme == .dark ? .white : .gray))
+                        .frame(width: 40, height: 40)
+                }
+                
+                Text(label)
+                    .font(.system(size: 10, weight: isSelected ? .semibold : .medium))
+                    .foregroundColor(isSelected ? .blue : (colorScheme == .dark ? .white.opacity(0.7) : .gray))
+            }
+            .padding(.horizontal, 4)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(PlainButtonStyle())
+        .frame(maxWidth: .infinity)
+    }
 }

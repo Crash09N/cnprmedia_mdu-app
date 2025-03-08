@@ -49,9 +49,28 @@ struct Schülerausweis: View {
     }
     
     func loadImage() {
-        NetworkManager.shared.fetchImage { data in
-            self.imageData = data
+        NetworkManager.shared.fetchImage(for: dummyArticle()) { data, error in
+            if let data = data {
+                self.imageData = data
+            } else if let error = error {
+                print("Error loading image: \(error)")
+            }
         }
+    }
+    
+    // Hilfsfunktion, um ein Dummy-Artikel-Objekt zu erstellen
+    private func dummyArticle() -> WordPressArticle {
+        return WordPressArticle(
+            id: 0,
+            date: "",
+            title: WordPressArticle.RenderedContent(rendered: ""),
+            content: WordPressArticle.RenderedContent(rendered: ""),
+            excerpt: WordPressArticle.RenderedContent(rendered: ""),
+            link: "",
+            featuredMedia: nil,
+            cachedImagePath: nil,
+            featuredMediaURL: nil
+        )
     }
     
     func addToWallet() {
@@ -61,9 +80,14 @@ struct Schülerausweis: View {
             return
         }
         
-        NetworkManager.shared.fetchPass { data in
-            guard let data = data else {
-                print("Failed to fetch pass data.")
+        // Verwende eine temporäre Implementierung, bis fetchPass implementiert ist
+        print("Funktion zum Abrufen des Passes ist noch nicht implementiert.")
+        
+        // Hier würde der eigentliche Code stehen:
+        /*
+        NetworkManager.shared.fetchPass { data, error in
+            guard let data = data, error == nil else {
+                print("Failed to fetch pass data: \(error?.localizedDescription ?? "Unknown error")")
                 return
             }
             
@@ -83,6 +107,7 @@ struct Schülerausweis: View {
                 print("Error loading pass: \(error)")
             }
         }
+        */
     }
 }
 

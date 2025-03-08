@@ -9,6 +9,9 @@ struct ArticlesView: View {
     @State private var usingBackend = true
     @State private var searchText = ""
     @State private var showSourceInfo = false
+    @State private var refreshing = false
+    @State private var scrollOffset: CGFloat = 0
+    @State private var serverStatus: ServerStatus? = nil
     @Environment(\.colorScheme) var colorScheme
     
     private var filteredArticles: [WordPressArticle] {
@@ -29,88 +32,133 @@ struct ArticlesView: View {
                 .edgesIgnoringSafeArea(.all)
             
             VStack(spacing: 0) {
-                // Header
-                VStack(spacing: 12) {
-                    HStack {
-                        Button(action: { currentPage = .home }) {
-                            Image(systemName: "chevron.left")
-                                .font(.system(size: 18, weight: .semibold))
-                                .foregroundColor(.blue)
-                        }
-                        .frame(width: 44)
+                // Modern header with blur effect
+                ZStack {
+                    // Blur background
+                    BlurView(style: colorScheme == .dark ? .dark : .light)
+                        .edgesIgnoringSafeArea(.top)
+                    
+                    VStack(spacing: 12) {
+                        // Status bar spacer
+                        Rectangle()
+                            .fill(Color.clear)
+                            .frame(height: 44)
                         
-                        Spacer()
-                        
-                        Text("Neuigkeiten")
-                            .font(.system(size: 22, weight: .bold))
-                        
-                        Spacer()
-                        
-                        HStack(spacing: 16) {
-                            Button(action: {
-                                if let url = URL(string: "https://marienschule-bielefeld.de/") {
-                                    UIApplication.shared.open(url)
+                        HStack {
+                            Button(action: { 
+                                withAnimation(.spring()) {
+                                    currentPage = .home 
                                 }
                             }) {
-                                Image(systemName: "globe")
+                                Image(systemName: "chevron.left")
                                     .font(.system(size: 18, weight: .semibold))
                                     .foregroundColor(.blue)
+                                    .padding(10)
+                                    .background(
+                                        Circle()
+                                            .fill(colorScheme == .dark ? Color.black.opacity(0.3) : Color.white.opacity(0.8))
+                                    )
+                                    .shadow(color: Color.black.opacity(0.1), radius: 3, x: 0, y: 1)
                             }
                             
-                            Button(action: { showSourceInfo.toggle() }) {
-                                Image(systemName: "info.circle")
-                                    .font(.system(size: 18, weight: .semibold))
-                                    .foregroundColor(.blue)
+                            Spacer()
+                            
+                            Text("Neuigkeiten")
+                                .font(.system(size: 22, weight: .bold))
+                                .opacity(1.0 - min(1.0, scrollOffset / 30))
+                            
+                            Spacer()
+                            
+                            HStack(spacing: 16) {
+                                Button(action: {
+                                    if let url = URL(string: "https://marienschule-bielefeld.de/") {
+                                        UIApplication.shared.open(url)
+                                    }
+                                }) {
+                                    Image(systemName: "globe")
+                                        .font(.system(size: 18, weight: .semibold))
+                                        .foregroundColor(.blue)
+                                        .padding(10)
+                                        .background(
+                                            Circle()
+                                                .fill(colorScheme == .dark ? Color.black.opacity(0.3) : Color.white.opacity(0.8))
+                                        )
+                                        .shadow(color: Color.black.opacity(0.1), radius: 3, x: 0, y: 1)
+                                }
+                                
+                                Button(action: { 
+                                    withAnimation(.spring()) {
+                                        showSourceInfo.toggle() 
+                                    }
+                                }) {
+                                    Image(systemName: "info.circle")
+                                        .font(.system(size: 18, weight: .semibold))
+                                        .foregroundColor(.blue)
+                                        .padding(10)
+                                        .background(
+                                            Circle()
+                                                .fill(colorScheme == .dark ? Color.black.opacity(0.3) : Color.white.opacity(0.8))
+                                        )
+                                        .shadow(color: Color.black.opacity(0.1), radius: 3, x: 0, y: 1)
+                                }
                             }
                         }
-                        .frame(width: 44)
-                    }
-                    .padding(.horizontal)
-                    .padding(.top, 10)
-                    
-                    // Modern search bar
-                    HStack {
-                        Image(systemName: "magnifyingglass")
-                            .foregroundColor(.gray)
-                            .padding(.leading, 8)
+                        .padding(.horizontal)
                         
-                        TextField("Artikel suchen...", text: $searchText)
-                            .font(.system(size: 16))
-                            .padding(.vertical, 10)
-                        
-                        if !searchText.isEmpty {
-                            Button(action: { searchText = "" }) {
-                                Image(systemName: "xmark.circle.fill")
-                                    .foregroundColor(.gray)
-                                    .padding(.trailing, 8)
+                        // Modern search bar with animation
+                        HStack {
+                            Image(systemName: "magnifyingglass")
+                                .foregroundColor(searchText.isEmpty ? .gray : .blue)
+                                .padding(.leading, 12)
+                                .animation(.spring(), value: searchText)
+                            
+                            TextField("Artikel suchen...", text: $searchText)
+                                .font(.system(size: 16))
+                                .padding(.vertical, 12)
+                            
+                            if !searchText.isEmpty {
+                                Button(action: { 
+                                    withAnimation(.spring()) {
+                                        searchText = "" 
+                                    }
+                                }) {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .foregroundColor(.gray)
+                                        .padding(.trailing, 12)
+                                }
+                                .transition(.scale.combined(with: .opacity))
                             }
                         }
+                        .background(
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(colorScheme == .dark ? Color(.systemGray6) : Color.white)
+                                .shadow(color: Color.black.opacity(0.05), radius: 3, x: 0, y: 2)
+                        )
+                        .padding(.horizontal)
+                        .padding(.bottom, 12)
                     }
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(Color(.systemGray6))
-                            .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
-                    )
-                    .padding(.horizontal)
-                    .padding(.bottom, 10)
                 }
-                .background(Color(UIColor.systemBackground))
-                .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 4)
+                .frame(height: 140)
+                .zIndex(2)
                 
-                if showSourceInfo {
-                    // Data source info banner with modern styling
+                // Server status info banner
+                if showSourceInfo, let status = serverStatus {
                     HStack(spacing: 10) {
                         Circle()
-                            .fill(usingBackend ? Color.green : Color.orange)
+                            .fill(statusColor(for: status.status))
                             .frame(width: 10, height: 10)
                         
-                        Text(usingBackend ? "Daten vom Backend-Server" : "Daten direkt von der Website")
+                        Text(status.message)
                             .font(.system(size: 13, weight: .medium))
                             .foregroundColor(.secondary)
                         
                         Spacer()
                         
-                        Button(action: { showSourceInfo = false }) {
+                        Button(action: { 
+                            withAnimation(.spring()) {
+                                showSourceInfo = false 
+                            }
+                        }) {
                             Image(systemName: "xmark")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
@@ -122,147 +170,143 @@ struct ArticlesView: View {
                     .padding(.horizontal, 16)
                     .padding(.vertical, 10)
                     .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(Color(.systemGray6))
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(colorScheme == .dark ? Color(.systemGray6) : Color.white)
                             .shadow(color: Color.black.opacity(0.05), radius: 3, x: 0, y: 2)
                     )
-                    .padding(.horizontal, 12)
-                    .padding(.top, 12)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 16)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .zIndex(1)
                 }
                 
                 // Content with modern styling for loading and error states
-                if isLoading {
-                    Spacer()
-                    VStack(spacing: 20) {
-                        ProgressView()
-                            .scaleEffect(1.5)
-                            .padding()
-                            .background(
-                                Circle()
-                                    .fill(Color(.systemBackground))
-                                    .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: 5)
-                            )
-                        
-                        Text("Neuigkeiten werden geladen...")
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(.secondary)
-                    }
-                    Spacer()
-                } else if let error = errorMessage {
-                    Spacer()
-                    VStack(spacing: 20) {
-                        Image(systemName: "exclamationmark.triangle")
-                            .font(.system(size: 40))
-                            .foregroundColor(.orange)
-                            .padding()
-                            .background(
-                                Circle()
-                                    .fill(Color(.systemBackground))
-                                    .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: 5)
-                            )
-                        
-                        Text(error)
-                            .font(.headline)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal)
-                        
-                        Button(action: { loadArticles() }) {
-                            Text("Erneut versuchen")
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 24)
-                                .padding(.vertical, 12)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .fill(Color.blue)
-                                        .shadow(color: Color.blue.opacity(0.3), radius: 5, x: 0, y: 3)
-                                )
+                ZStack {
+                    if isLoading && articles.isEmpty {
+                        LoadingView(message: "Neuigkeiten werden geladen...")
+                    } else if let error = errorMessage {
+                        ErrorView(message: error) {
+                            loadArticles()
                         }
-                    }
-                    Spacer()
-                } else if filteredArticles.isEmpty {
-                    if searchText.isEmpty {
-                        Spacer()
-                        VStack(spacing: 20) {
-                            Image(systemName: "newspaper")
-                                .font(.system(size: 40))
-                                .foregroundColor(Color.blue.opacity(0.6))
-                                .padding()
-                                .background(
-                                    Circle()
-                                        .fill(Color.blue.opacity(0.1))
-                                        .shadow(color: Color.black.opacity(0.05), radius: 10, x: 0, y: 5)
-                                )
-                            
-                            Text("Keine Neuigkeiten verfügbar")
-                                .font(.system(size: 18, weight: .semibold))
-                                .foregroundColor(.gray)
+                    } else if filteredArticles.isEmpty {
+                        if searchText.isEmpty {
+                            EmptyStateView(
+                                icon: "newspaper",
+                                title: "Keine Neuigkeiten verfügbar",
+                                message: serverStatusMessage()
+                            )
+                        } else {
+                            EmptyStateView(
+                                icon: "magnifyingglass",
+                                title: "Keine Ergebnisse",
+                                message: "Keine Ergebnisse für \"\(searchText)\""
+                            )
                         }
-                        Spacer()
                     } else {
-                        Spacer()
-                        VStack(spacing: 20) {
-                            Image(systemName: "magnifyingglass")
-                                .font(.system(size: 40))
-                                .foregroundColor(Color.blue.opacity(0.6))
-                                .padding()
-                                .background(
-                                    Circle()
-                                        .fill(Color.blue.opacity(0.1))
-                                        .shadow(color: Color.black.opacity(0.05), radius: 10, x: 0, y: 5)
-                                )
+                        // Articles list with modern styling and pull-to-refresh
+                        ScrollViewWithOffset(axes: .vertical, showsIndicators: true, onOffsetChange: { offset in
+                            scrollOffset = offset
                             
-                            Text("Keine Ergebnisse für \"\(searchText)\"")
-                                .font(.system(size: 18, weight: .semibold))
-                                .foregroundColor(.gray)
-                        }
-                        Spacer()
-                    }
-                } else {
-                    // Articles grid/list with modern styling
-                    ScrollView {
-                        LazyVStack(spacing: 0) {
-                            // Featured article (first article)
-                            if !searchText.isEmpty || filteredArticles.isEmpty {
-                                // Skip featured article in search results
-                            } else {
-                                FeaturedArticleCard(article: filteredArticles[0])
-                                    .onTapGesture {
-                                        selectedArticle = filteredArticles[0]
-                                    }
-                                    .padding(.horizontal)
-                                    .padding(.top, 16)
+                            // Pull-to-refresh logic
+                            if offset > 80 && !refreshing && !isLoading {
+                                refreshing = true
+                                loadArticles()
                             }
-                            
-                            // Rest of the articles
-                            ForEach(searchText.isEmpty && !filteredArticles.isEmpty ? Array(filteredArticles.dropFirst()) : filteredArticles) { article in
-                                ArticleListItem(article: article)
-                                    .onTapGesture {
-                                        selectedArticle = article
+                        }) {
+                            VStack(spacing: 0) {
+                                // Pull-to-refresh indicator
+                                if refreshing {
+                                    HStack {
+                                        Spacer()
+                                        ProgressView()
+                                            .scaleEffect(1.2)
+                                            .padding()
+                                        Spacer()
                                     }
-                                    .padding(.horizontal)
-                                    .padding(.top, 16)
+                                }
+                                
+                                // Featured article (first article)
+                                if !searchText.isEmpty || filteredArticles.isEmpty {
+                                    // Skip featured article in search results
+                                } else {
+                                    FeaturedArticleCard(article: filteredArticles[0])
+                                        .onTapGesture {
+                                            withAnimation(.spring()) {
+                                                selectedArticle = filteredArticles[0]
+                                            }
+                                        }
+                                        .padding(.horizontal)
+                                        .padding(.top, 16)
+                                }
+                                
+                                // Rest of the articles with staggered animation
+                                LazyVStack(spacing: 16) {
+                                    ForEach(Array(zip(searchText.isEmpty && !filteredArticles.isEmpty ? Array(filteredArticles.dropFirst()).indices : filteredArticles.indices, searchText.isEmpty && !filteredArticles.isEmpty ? Array(filteredArticles.dropFirst()) : filteredArticles)), id: \.1.id) { index, article in
+                                        ArticleListItem(article: article, index: index)
+                                            .onTapGesture {
+                                                withAnimation(.spring()) {
+                                                    selectedArticle = article
+                                                }
+                                            }
+                                            .padding(.horizontal)
+                                    }
+                                }
+                                .padding(.top, 16)
+                                
+                                // Bottom padding
+                                Spacer(minLength: 30)
                             }
-                            
-                            // Bottom padding
-                            Spacer(minLength: 30)
+                        }
+                        .padding(.top, 8)
+                    }
+                }
+                .onChange(of: refreshing) { newValue in
+                    if !newValue {
+                        // Reset refreshing state after a delay
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                            withAnimation {
+                                refreshing = false
+                            }
                         }
                     }
-                    .padding(.top, 8)
                 }
             }
             
-            // Article detail overlay
+            // Article detail overlay with hero animation
             if let article = selectedArticle {
+                Color.black.opacity(0.5)
+                    .edgesIgnoringSafeArea(.all)
+                    .transition(.opacity)
+                    .onTapGesture {
+                        withAnimation(.spring()) {
+                            selectedArticle = nil
+                        }
+                    }
+                
                 FixedArticleDetailView(article: article, isPresented: Binding(
                     get: { selectedArticle != nil },
                     set: { if !$0 { selectedArticle = nil } }
+                ))
+                .transition(.asymmetric(
+                    insertion: .scale(scale: 0.9).combined(with: .opacity),
+                    removal: .scale(scale: 0.9).combined(with: .opacity)
                 ))
             }
         }
         .navigationBarHidden(true)
         .onAppear {
+            fetchServerStatus()
             loadArticles()
+        }
+    }
+    
+    private func fetchServerStatus() {
+        NetworkManager.shared.fetchServerStatus { status, error in
+            if let status = status {
+                self.serverStatus = status
+            } else if let error = error {
+                print("Error fetching server status: \(error.localizedDescription)")
+            }
         }
     }
     
@@ -272,18 +316,284 @@ struct ArticlesView: View {
         
         NetworkManager.shared.fetchWordPressArticles { articles, error in
             isLoading = false
-            
-            // Update the data source indicator
-            self.usingBackend = NetworkManager.shared.isUsingBackend()
+            refreshing = false
             
             if let error = error {
                 errorMessage = "Fehler beim Laden der Artikel: \(error.localizedDescription)"
             } else if let articles = articles {
-                self.articles = articles
+                withAnimation(.spring()) {
+                    self.articles = articles
+                }
             } else {
                 errorMessage = "Unbekannter Fehler beim Laden der Artikel"
             }
+            
+            // Refresh server status after loading articles
+            fetchServerStatus()
         }
+    }
+    
+    private func statusColor(for status: ServerStatus.Status) -> Color {
+        switch status {
+        case .online:
+            return .green
+        case .offline:
+            return .red
+        case .wordpressOffline:
+            return .orange
+        case .starting:
+            return .blue
+        case .error:
+            return .red
+        }
+    }
+    
+    private func serverStatusMessage() -> String {
+        if let status = serverStatus {
+            switch status.status {
+            case .wordpressOffline:
+                return "Die Schul-Website ist nicht erreichbar. Es werden zwischengespeicherte Daten angezeigt."
+            case .offline:
+                return "Der Server ist offline. Bitte versuche es später erneut."
+            case .error:
+                return "Es ist ein Fehler aufgetreten: \(status.message)"
+            case .starting:
+                return "Der Server wird gestartet..."
+            case .online:
+                return "Zurzeit sind keine Artikel verfügbar."
+            }
+        } else {
+            return "Keine Verbindung zum Server möglich."
+        }
+    }
+}
+
+// MARK: - Helper Views
+
+// BlurView for modern UI
+struct BlurView: UIViewRepresentable {
+    let style: UIBlurEffect.Style
+    
+    func makeUIView(context: Context) -> UIVisualEffectView {
+        let view = UIVisualEffectView(effect: UIBlurEffect(style: style))
+        return view
+    }
+    
+    func updateUIView(_ uiView: UIVisualEffectView, context: Context) {
+        uiView.effect = UIBlurEffect(style: style)
+    }
+}
+
+// ScrollView with offset tracking for pull-to-refresh
+struct ScrollViewWithOffset<Content: View>: View {
+    let axes: Axis.Set
+    let showsIndicators: Bool
+    let onOffsetChange: (CGFloat) -> Void
+    let content: Content
+    
+    init(axes: Axis.Set = .vertical, showsIndicators: Bool = true, onOffsetChange: @escaping (CGFloat) -> Void = { _ in }, @ViewBuilder content: () -> Content) {
+        self.axes = axes
+        self.showsIndicators = showsIndicators
+        self.onOffsetChange = onOffsetChange
+        self.content = content()
+    }
+    
+    var body: some View {
+        ScrollView(axes, showsIndicators: showsIndicators) {
+            GeometryReader { geometry in
+                Color.clear.preference(key: ScrollOffsetPreferenceKey.self, value: geometry.frame(in: .named("scrollView")).minY)
+            }
+            .frame(width: 0, height: 0)
+            
+            content
+        }
+        .coordinateSpace(name: "scrollView")
+        .onPreferenceChange(ScrollOffsetPreferenceKey.self, perform: onOffsetChange)
+    }
+}
+
+struct ScrollOffsetPreferenceKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
+    }
+}
+
+// Loading state view
+struct LoadingView: View {
+    let message: String
+    
+    var body: some View {
+        VStack(spacing: 20) {
+            ZStack {
+                Circle()
+                    .fill(Color.blue.opacity(0.1))
+                    .frame(width: 80, height: 80)
+                
+                ProgressView()
+                    .scaleEffect(1.5)
+                    .progressViewStyle(CircularProgressViewStyle(tint: .blue))
+            }
+            
+            Text(message)
+                .font(.system(size: 16, weight: .medium))
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+// Error state view
+struct ErrorView: View {
+    let message: String
+    let retryAction: () -> Void
+    @Environment(\.colorScheme) var colorScheme
+    
+    // Extract error type from message
+    private var isServerOffline: Bool {
+        message.contains("Server") && (message.contains("offline") || message.contains("nicht erreichbar"))
+    }
+    
+    private var isNetworkError: Bool {
+        message.contains("Netzwerk") || message.contains("Internet") || message.contains("Verbindung")
+    }
+    
+    var body: some View {
+        VStack(spacing: 24) {
+            // Icon based on error type
+            ZStack {
+                Circle()
+                    .fill(errorColor.opacity(0.1))
+                    .frame(width: 100, height: 100)
+                
+                Image(systemName: errorIcon)
+                    .font(.system(size: 40))
+                    .foregroundColor(errorColor)
+            }
+            
+            // Error title
+            Text(errorTitle)
+                .font(.system(size: 20, weight: .bold))
+                .multilineTextAlignment(.center)
+            
+            // Error message
+            Text(message)
+                .font(.system(size: 16))
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 32)
+            
+            // Action buttons
+            VStack(spacing: 12) {
+                Button(action: retryAction) {
+                    HStack {
+                        Image(systemName: "arrow.clockwise")
+                        Text("Erneut versuchen")
+                    }
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 12)
+                    .frame(maxWidth: 280)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color.blue)
+                            .shadow(color: Color.blue.opacity(0.3), radius: 5, x: 0, y: 3)
+                    )
+                }
+                
+                if isServerOffline {
+                    Button(action: {
+                        if let url = URL(string: "https://marienschule-bielefeld.de/") {
+                            UIApplication.shared.open(url)
+                        }
+                    }) {
+                        HStack {
+                            Image(systemName: "safari")
+                            Text("Website im Browser öffnen")
+                        }
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(colorScheme == .dark ? .white : .blue)
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 12)
+                        .frame(maxWidth: 280)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Color.blue, lineWidth: 1)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(colorScheme == .dark ? Color.blue.opacity(0.2) : Color.white)
+                                )
+                        )
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+    
+    // Dynamic properties based on error type
+    private var errorIcon: String {
+        if isServerOffline {
+            return "server.rack"
+        } else if isNetworkError {
+            return "wifi.slash"
+        } else {
+            return "exclamationmark.triangle"
+        }
+    }
+    
+    private var errorColor: Color {
+        if isServerOffline {
+            return .orange
+        } else if isNetworkError {
+            return .red
+        } else {
+            return .orange
+        }
+    }
+    
+    private var errorTitle: String {
+        if isServerOffline {
+            return "Server nicht erreichbar"
+        } else if isNetworkError {
+            return "Netzwerkfehler"
+        } else {
+            return "Fehler aufgetreten"
+        }
+    }
+}
+
+// Empty state view
+struct EmptyStateView: View {
+    let icon: String
+    let title: String
+    let message: String
+    
+    var body: some View {
+        VStack(spacing: 20) {
+            Image(systemName: icon)
+                .font(.system(size: 40))
+                .foregroundColor(Color.blue.opacity(0.6))
+                .padding()
+                .background(
+                    Circle()
+                        .fill(Color.blue.opacity(0.1))
+                        .frame(width: 100, height: 100)
+                )
+            
+            Text(title)
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundColor(.primary)
+            
+            Text(message)
+                .font(.system(size: 16))
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
@@ -301,7 +611,7 @@ struct FeaturedArticleCard: View {
                 if isLoadingImage {
                     Rectangle()
                         .fill(Color(.systemGray5))
-                        .frame(height: 200)
+                        .frame(height: 220)
                         .overlay(
                             ProgressView()
                                 .scaleEffect(1.5)
@@ -310,12 +620,12 @@ struct FeaturedArticleCard: View {
                     Image(uiImage: uiImage)
                         .resizable()
                         .aspectRatio(contentMode: .fill)
-                        .frame(height: 200)
+                        .frame(height: 220)
                         .clipped()
                 } else {
                     Rectangle()
                         .fill(Color.blue.opacity(0.15))
-                        .frame(height: 200)
+                        .frame(height: 220)
                         .overlay(
                             Image(systemName: "newspaper.fill")
                                 .font(.system(size: 40))
@@ -334,20 +644,29 @@ struct FeaturedArticleCard: View {
                 VStack {
                     Spacer()
                     HStack {
-                        VStack(alignment: .leading, spacing: 4) {
+                        VStack(alignment: .leading, spacing: 8) {
                             Text(formatDate(article.date))
                                 .font(.caption)
                                 .fontWeight(.medium)
                                 .foregroundColor(.white.opacity(0.9))
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 4)
-                                .background(Color.blue.opacity(0.7))
-                                .cornerRadius(4)
+                                .background(
+                                    Capsule()
+                                        .fill(Color.blue.opacity(0.7))
+                                )
                             
                             Text(article.title.plainText)
-                                .font(.headline)
+                                .font(.title3)
                                 .fontWeight(.bold)
                                 .foregroundColor(.white)
+                                .lineLimit(2)
+                                .shadow(color: .black.opacity(0.5), radius: 2, x: 0, y: 1)
+                                .fixedSize(horizontal: false, vertical: true)
+                            
+                            Text(cleanExcerpt(article.excerpt.plainText))
+                                .font(.subheadline)
+                                .foregroundColor(.white.opacity(0.9))
                                 .lineLimit(2)
                                 .shadow(color: .black.opacity(0.5), radius: 2, x: 0, y: 1)
                         }
@@ -358,11 +677,11 @@ struct FeaturedArticleCard: View {
                     }
                 }
             }
-            .cornerRadius(16)
+            .cornerRadius(20)
         }
         .background(colorScheme == .dark ? Color(.systemGray6) : Color.white)
-        .cornerRadius(16)
-        .shadow(color: Color.black.opacity(0.15), radius: 8, x: 0, y: 4)
+        .cornerRadius(20)
+        .shadow(color: Color.black.opacity(0.15), radius: 10, x: 0, y: 5)
         .onAppear {
             loadImage()
         }
@@ -382,7 +701,9 @@ struct FeaturedArticleCard: View {
             isLoadingImage = false
             
             if let data = data {
-                self.imageData = data
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    self.imageData = data
+                }
             } else if let error = error {
                 print("Error loading image: \(error.localizedDescription)")
             }
@@ -404,13 +725,33 @@ struct FeaturedArticleCard: View {
         
         return dateString
     }
+    
+    // Helper function to clean excerpt text
+    private func cleanExcerpt(_ text: String) -> String {
+        var cleanedText = text
+        
+        // Remove WordPress ellipsis markers
+        cleanedText = cleanedText.replacingOccurrences(of: "[…]", with: "")
+        cleanedText = cleanedText.replacingOccurrences(of: "[&hellip;]", with: "")
+        cleanedText = cleanedText.replacingOccurrences(of: "[&#8230;]", with: "")
+        
+        // Remove trailing ellipsis
+        if cleanedText.hasSuffix("...") || cleanedText.hasSuffix("…") {
+            cleanedText = cleanedText.replacingOccurrences(of: "\\.\\.\\.$", with: "", options: .regularExpression)
+            cleanedText = cleanedText.replacingOccurrences(of: "…$", with: "", options: .regularExpression)
+        }
+        
+        return cleanedText
+    }
 }
 
 // Article list item (horizontal card for regular articles)
 struct ArticleListItem: View {
     let article: WordPressArticle
+    let index: Int
     @State private var imageData: Data? = nil
     @State private var isLoadingImage = false
+    @State private var appeared = false
     @Environment(\.colorScheme) var colorScheme
     
     var body: some View {
@@ -421,7 +762,7 @@ struct ArticleListItem: View {
                     Rectangle()
                         .fill(Color(.systemGray5))
                         .frame(width: 100, height: 100)
-                        .cornerRadius(12)
+                        .cornerRadius(16)
                         .overlay(
                             ProgressView()
                                 .scaleEffect(1.2)
@@ -431,13 +772,13 @@ struct ArticleListItem: View {
                         .resizable()
                         .aspectRatio(contentMode: .fill)
                         .frame(width: 100, height: 100)
-                        .cornerRadius(12)
+                        .cornerRadius(16)
                         .clipped()
                 } else {
                     Rectangle()
                         .fill(Color.blue.opacity(0.1))
                         .frame(width: 100, height: 100)
-                        .cornerRadius(12)
+                        .cornerRadius(16)
                         .overlay(
                             Image(systemName: "newspaper.fill")
                                 .font(.system(size: 30))
@@ -453,7 +794,7 @@ struct ArticleListItem: View {
                     .lineLimit(2)
                     .foregroundColor(.primary)
                 
-                Text(article.excerpt.plainText)
+                Text(cleanExcerpt(article.excerpt.plainText))
                     .font(.system(size: 14))
                     .lineLimit(2)
                     .foregroundColor(.secondary)
@@ -464,8 +805,10 @@ struct ArticleListItem: View {
                         .foregroundColor(.white)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 3)
-                        .background(Color.blue.opacity(0.7))
-                        .cornerRadius(4)
+                        .background(
+                            Capsule()
+                                .fill(Color.blue.opacity(0.7))
+                        )
                     
                     Spacer()
                     
@@ -478,10 +821,18 @@ struct ArticleListItem: View {
             Spacer()
         }
         .padding(16)
-        .background(colorScheme == .dark ? Color(.systemGray6) : Color.white)
-        .cornerRadius(16)
-        .shadow(color: Color.black.opacity(0.1), radius: 6, x: 0, y: 3)
+        .background(
+            RoundedRectangle(cornerRadius: 20)
+                .fill(colorScheme == .dark ? Color(.systemGray6) : Color.white)
+                .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
+        )
+        .opacity(appeared ? 1.0 : 0.0)
+        .offset(y: appeared ? 0 : 20)
         .onAppear {
+            // Staggered animation for list items
+            withAnimation(.spring(response: 0.5, dampingFraction: 0.8).delay(Double(index) * 0.05)) {
+                appeared = true
+            }
             loadImage()
         }
     }
@@ -500,7 +851,9 @@ struct ArticleListItem: View {
             isLoadingImage = false
             
             if let data = data {
-                self.imageData = data
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    self.imageData = data
+                }
             } else if let error = error {
                 print("Error loading image: \(error.localizedDescription)")
             }
@@ -521,6 +874,24 @@ struct ArticleListItem: View {
         }
         
         return dateString
+    }
+    
+    // Helper function to clean excerpt text
+    private func cleanExcerpt(_ text: String) -> String {
+        var cleanedText = text
+        
+        // Remove WordPress ellipsis markers
+        cleanedText = cleanedText.replacingOccurrences(of: "[…]", with: "")
+        cleanedText = cleanedText.replacingOccurrences(of: "[&hellip;]", with: "")
+        cleanedText = cleanedText.replacingOccurrences(of: "[&#8230;]", with: "")
+        
+        // Remove trailing ellipsis
+        if cleanedText.hasSuffix("...") || cleanedText.hasSuffix("…") {
+            cleanedText = cleanedText.replacingOccurrences(of: "\\.\\.\\.$", with: "", options: .regularExpression)
+            cleanedText = cleanedText.replacingOccurrences(of: "…$", with: "", options: .regularExpression)
+        }
+        
+        return cleanedText
     }
 }
 
@@ -643,7 +1014,7 @@ struct FixedArticleDetailView: View {
                         .padding(.bottom, 16)
                     }
                 }
-                .frame(width: min(geometry.size.width * 0.95, 500), height: min(geometry.size.height * 0.9, 800))
+                .frame(width: min(geometry.size.width * 0.95, 500), height: min(geometry.size.height * 0.95, 900))
                 .background(colorScheme == .dark ? Color(.systemBackground) : Color.white)
                 .cornerRadius(16)
                 .shadow(radius: 10)
@@ -956,6 +1327,14 @@ struct ArticleContentView: UIViewRepresentable {
         // Resize the UITextView to fit its content
         let newSize = uiView.sizeThatFits(CGSize(width: contentWidth, height: CGFloat.greatestFiniteMagnitude))
         uiView.frame.size = CGSize(width: contentWidth, height: newSize.height)
+        
+        // Ensure the text view is large enough to display all content
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            let finalSize = uiView.sizeThatFits(CGSize(width: contentWidth, height: CGFloat.greatestFiniteMagnitude))
+            if finalSize.height > newSize.height {
+                uiView.frame.size = CGSize(width: contentWidth, height: finalSize.height)
+            }
+        }
     }
     
     // Helper method to process WordPress content
@@ -965,6 +1344,8 @@ struct ArticleContentView: UIViewRepresentable {
         
         // Replace any "[&hellip;]" or similar truncation markers
         processedContent = processedContent.replacingOccurrences(of: "\\[&hellip;\\]", with: "", options: .regularExpression)
+        processedContent = processedContent.replacingOccurrences(of: "\\[…\\]", with: "", options: .regularExpression)
+        processedContent = processedContent.replacingOccurrences(of: "\\[&\\#8230;\\]", with: "", options: .regularExpression)
         
         // Fix any incomplete HTML tags
         if !processedContent.contains("</p>") && processedContent.contains("<p>") {
@@ -1018,6 +1399,26 @@ struct ArticleContentView: UIViewRepresentable {
             with: "",
             options: .regularExpression
         )
+        
+        // Fix abrupt ending with ellipsis
+        if processedContent.hasSuffix("...") || processedContent.hasSuffix("…") {
+            // If content ends with ellipsis, it might be truncated
+            processedContent = processedContent.replacingOccurrences(of: "\\.\\.\\.$", with: "", options: .regularExpression)
+            processedContent = processedContent.replacingOccurrences(of: "…$", with: "", options: .regularExpression)
+        }
+        
+        // Fix HTML entities that might be causing truncation
+        processedContent = processedContent.replacingOccurrences(of: "&nbsp;", with: " ", options: .regularExpression)
+        processedContent = processedContent.replacingOccurrences(of: "&amp;", with: "&", options: .regularExpression)
+        processedContent = processedContent.replacingOccurrences(of: "&lt;", with: "<", options: .regularExpression)
+        processedContent = processedContent.replacingOccurrences(of: "&gt;", with: ">", options: .regularExpression)
+        
+        // Fix potential truncation in the middle of a paragraph
+        if !processedContent.hasSuffix("</p>") && !processedContent.hasSuffix("</div>") {
+            if processedContent.contains("<p>") {
+                processedContent += "</p>"
+            }
+        }
         
         return processedContent
     }
