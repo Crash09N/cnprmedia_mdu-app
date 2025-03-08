@@ -20,7 +20,8 @@ struct Lesson: Identifiable {
 
 struct TimetableView: View {
     @State private var selectedDate = Date()
-    
+    @State private var today = Date() // Speichert das heutige Datum für Markierung
+
     private let calendar = Calendar.current
     private let daysToShow = 7
     private let startYear = 2025
@@ -53,8 +54,9 @@ struct TimetableView: View {
     }
     
     private func startOfWeek(for date: Date) -> Date {
-        let weekday = calendar.component(.weekday, from: date) - 2
-        return calendar.date(byAdding: .day, value: -weekday, to: date)!
+        let weekday = calendar.component(.weekday, from: date)
+        let offset = weekday == 1 ? -6 : -(weekday - 2)
+        return calendar.date(byAdding: .day, value: offset, to: date)!
     }
     
     private func daysInWeek() -> [Date] {
@@ -74,7 +76,7 @@ struct TimetableView: View {
                     Spacer()
                     
                     Button(action: {
-                        selectedDate = Date() // Springt zu HEUTE
+                        selectedDate = today // Springt zu HEUTE
                     }) {
                         Text("Heute")
                             .font(.subheadline)
@@ -88,7 +90,7 @@ struct TimetableView: View {
                 .padding(.horizontal)
                 .padding(.top, 10)
 
-                // **Tagesanzeige (fixiert)**
+                // **Tagesanzeige (fixiert, heutiger Tag leicht blau)**
                 HStack {
                     ForEach(daysInWeek(), id: \.self) { date in
                         VStack {
@@ -100,12 +102,15 @@ struct TimetableView: View {
                                 .font(.title3)
                                 .fontWeight(.semibold)
                                 .frame(width: 40, height: 40)
-                                .background(date == selectedDate ? Color.red : Color.clear)
+                                .background(
+                                    date == selectedDate ? Color.red : // Aktuell gewählter Tag
+                                    calendar.isDate(date, inSameDayAs: today) ? Color.blue.opacity(0.2) : Color.clear // Heute leicht blau
+                                )
                                 .clipShape(Circle())
                                 .foregroundColor(date == selectedDate ? .white : .black)
                         }
                         .onTapGesture {
-                            selectedDate = date
+                            selectedDate = date // Direkter Wechsel zum Tag erlaubt
                         }
                     }
                 }
@@ -114,15 +119,17 @@ struct TimetableView: View {
                 // **Stundenplan**
                 ScrollView {
                     VStack(spacing: 10) {
-                        let dayIndex = (calendar.component(.weekday, from: selectedDate) + 5) % 7
-                        if dayIndex >= 0 && dayIndex < lessonsByDay.count {
-                            if lessonsByDay[dayIndex].isEmpty {
+                        let dayIndex = calendar.component(.weekday, from: selectedDate) - 2
+                        let correctedIndex = dayIndex < 0 ? 6 : dayIndex
+                        
+                        if correctedIndex < lessonsByDay.count {
+                            if lessonsByDay[correctedIndex].isEmpty {
                                 Text("Kein Unterricht an diesem Tag")
                                     .font(.title2)
                                     .foregroundColor(.gray)
                                     .padding()
                             } else {
-                                ForEach(lessonsByDay[dayIndex]) { lesson in
+                                ForEach(lessonsByDay[correctedIndex]) { lesson in
                                     HStack {
                                         Text(lesson.timeSlot)
                                             .font(.caption)
@@ -179,13 +186,11 @@ struct TimetableView: View {
                     }
                 )
             }
+            .onAppear {
+                today = Date() // Beim Start heutigen Tag setzen
+                selectedDate = today
+            }
             .navigationBarTitle("Stundenplan", displayMode: .inline)
         }
-    }
-}
-
-struct TimetableView_Previews: PreviewProvider {
-    static var previews: some View {
-        TimetableView()
     }
 }

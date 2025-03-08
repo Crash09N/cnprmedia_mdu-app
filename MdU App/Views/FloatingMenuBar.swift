@@ -8,6 +8,7 @@ struct FloatingMenuBar: View {
         case calendar
         case tasks
         case studentID
+        case account
     }
     
     var body: some View {
@@ -29,6 +30,10 @@ struct FloatingMenuBar: View {
                 MenuButton(icon: "book.fill",
                           isSelected: currentPage == .studentID,
                           action: { currentPage = .studentID })
+                Spacer()
+                MenuButton(icon: "checkmark.circle",
+                           isSelected: currentPage == .account,
+                           action: { currentPage = .account })
             }
             .padding()
             .background(Color.gray.opacity(0.9))
