@@ -9,7 +9,7 @@ import SwiftUI
 import WebKit
 		
 enum Page {
-    case home, calendar, tasks, studentID, webView, articles
+    case home, calendar, tasks, studentID, webView, articles, account
 }
 
 struct ContentView: View {
@@ -31,6 +31,9 @@ struct ContentView: View {
                     WebViewContainer(currentPage: $currentPage)
                 case .articles:
                     ArticlesView(currentPage: $currentPage)
+                case .account:
+                    AccountView()
+                
                 }
             }
             
@@ -481,9 +484,10 @@ struct CustomFloatingMenuBar: View {
             HStack(spacing: 0) {
                 ForEach([
                     (page: Page.home, icon: "house.fill", label: "Home"),
-                    (page: Page.calendar, icon: "calendar", label: "Stundenplan"),
+                    (page: Page.calendar, icon: "calendar", label: "Kalendar"),
                     (page: Page.tasks, icon: "list.bullet", label: "Aufgaben"),
-                    (page: Page.studentID, icon: "person.crop.rectangle", label: "Ausweis")
+                    (page: Page.studentID, icon: "person.crop.rectangle", label: "Ausweis"),
+                    (page: Page.account, icon: "person.crop.circle", label: "Account")
                 ], id: \.page) { item in
                     MenuBarButton(
                         icon: item.icon,
