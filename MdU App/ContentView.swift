@@ -20,25 +20,6 @@ enum Page {
     case home, calendar, tasks, files, webView, articles, account
 }
 
-// Dummy-Implementierung für CoreDataManager, falls nicht importiert werden kann
-class CoreDataManagerDummy {
-    static let shared = CoreDataManagerDummy()
-    
-    private init() {}
-    
-    func getCurrentUser() -> UserEntityDummy? {
-        // Erstelle einen Dummy-Benutzer mit der Schulklasse "10b"
-        let user = UserEntityDummy()
-        user.schoolClass = "10b"
-        return user
-    }
-}
-
-// Dummy-Implementierung für UserEntity, falls nicht importiert werden kann
-class UserEntityDummy {
-    var schoolClass: String?
-}
-
 struct ContentView: View {
     @State private var currentPage: Page = .home
     @State private var selectedDate: Date = Date()
@@ -84,44 +65,6 @@ struct HomeView: View {
     
     // Suchvorschläge für die Suchleiste
     private let searchSuggestions = ["Mathematik", "Deutsch", "Englisch", "Heute", "Morgen", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag"]
-    
-    private let lessonsByDay: [[Lesson]] = [
-        // Montag
-        [
-            Lesson(subject: "Mathematik", room: "R1.101", teacher: "Dr. Meier", timeSlot: "8:00 - 9:30", color: .blue, startTime: Calendar.current.date(from: DateComponents(hour: 8, minute: 0))!, endTime: Calendar.current.date(from: DateComponents(hour: 9, minute: 30))!),
-            Lesson(subject: "Deutsch", room: "R1.201", teacher: "Frau Schmidt", timeSlot: "9:45 - 11:15", color: .red, startTime: Calendar.current.date(from: DateComponents(hour: 9, minute: 45))!, endTime: Calendar.current.date(from: DateComponents(hour: 11, minute: 15))!),
-            Lesson(subject: "Englisch", room: "R2.101", teacher: "Mr. Brown", timeSlot: "11:35 - 13:05", color: .purple, startTime: Calendar.current.date(from: DateComponents(hour: 11, minute: 35))!, endTime: Calendar.current.date(from: DateComponents(hour: 13, minute: 5))!),
-            Lesson(subject: "Physik", room: "R3.102", teacher: "Herr Weber", timeSlot: "13:50 - 15:20", color: .yellow, startTime: Calendar.current.date(from: DateComponents(hour: 13, minute: 50))!, endTime: Calendar.current.date(from: DateComponents(hour: 15, minute: 20))!),
-            Lesson(subject: "Freistunde", room: "", teacher: "", timeSlot: "15:30 - 17:00", color: .gray, startTime: Calendar.current.date(from: DateComponents(hour: 15, minute: 30))!, endTime: Calendar.current.date(from: DateComponents(hour: 17, minute: 0))!)
-        ],
-        // Dienstag
-        [
-            Lesson(subject: "Biologie", room: "R2.301", teacher: "Frau Fischer", timeSlot: "8:00 - 9:30", color: .green, startTime: Calendar.current.date(from: DateComponents(hour: 8, minute: 0))!, endTime: Calendar.current.date(from: DateComponents(hour: 9, minute: 30))!),
-            Lesson(subject: "Chemie", room: "R3.205", teacher: "Dr. Hoffmann", timeSlot: "9:45 - 11:15", color: .pink, startTime: Calendar.current.date(from: DateComponents(hour: 9, minute: 45))!, endTime: Calendar.current.date(from: DateComponents(hour: 11, minute: 15))!),
-            Lesson(subject: "Geschichte", room: "R1.112", teacher: "Herr Lehmann", timeSlot: "11:35 - 13:05", color: .cyan, startTime: Calendar.current.date(from: DateComponents(hour: 11, minute: 35))!, endTime: Calendar.current.date(from: DateComponents(hour: 13, minute: 5))!),
-            Lesson(subject: "Kunst", room: "R4.104", teacher: "Frau Wagner", timeSlot: "13:50 - 15:20", color: .orange, startTime: Calendar.current.date(from: DateComponents(hour: 13, minute: 50))!, endTime: Calendar.current.date(from: DateComponents(hour: 15, minute: 20))!),
-            Lesson(subject: "Freistunde", room: "", teacher: "", timeSlot: "15:30 - 17:00", color: .gray, startTime: Calendar.current.date(from: DateComponents(hour: 15, minute: 30))!, endTime: Calendar.current.date(from: DateComponents(hour: 17, minute: 0))!)
-        ],
-        // Mittwoch
-        [
-            Lesson(subject: "Sport", room: "Sporthalle", teacher: "Herr Müller", timeSlot: "8:00 - 9:30", color: .green, startTime: Calendar.current.date(from: DateComponents(hour: 8, minute: 0))!, endTime: Calendar.current.date(from: DateComponents(hour: 9, minute: 30))!),
-            Lesson(subject: "Informatik", room: "R2.205", teacher: "Herr Klein", timeSlot: "9:45 - 11:15", color: .blue, startTime: Calendar.current.date(from: DateComponents(hour: 9, minute: 45))!, endTime: Calendar.current.date(from: DateComponents(hour: 11, minute: 15))!),
-            Lesson(subject: "Ethik", room: "R1.112", teacher: "Frau Bauer", timeSlot: "11:35 - 13:05", color: .purple, startTime: Calendar.current.date(from: DateComponents(hour: 11, minute: 35))!, endTime: Calendar.current.date(from: DateComponents(hour: 13, minute: 5))!)
-        ],
-        // Donnerstag
-        [
-            Lesson(subject: "Deutsch", room: "R1.201", teacher: "Frau Schmidt", timeSlot: "8:00 - 9:30", color: .red, startTime: Calendar.current.date(from: DateComponents(hour: 8, minute: 0))!, endTime: Calendar.current.date(from: DateComponents(hour: 9, minute: 30))!),
-            Lesson(subject: "Mathematik", room: "R1.101", teacher: "Dr. Meier", timeSlot: "9:45 - 11:15", color: .blue, startTime: Calendar.current.date(from: DateComponents(hour: 9, minute: 45))!, endTime: Calendar.current.date(from: DateComponents(hour: 11, minute: 15))!),
-            Lesson(subject: "Kunst", room: "R4.104", teacher: "Frau Wagner", timeSlot: "11:35 - 13:05", color: .orange, startTime: Calendar.current.date(from: DateComponents(hour: 11, minute: 35))!, endTime: Calendar.current.date(from: DateComponents(hour: 13, minute: 5))!),
-            Lesson(subject: "Englisch", room: "R2.101", teacher: "Mr. Brown", timeSlot: "13:50 - 15:20", color: .purple, startTime: Calendar.current.date(from: DateComponents(hour: 13, minute: 50))!, endTime: Calendar.current.date(from: DateComponents(hour: 15, minute: 20))!)
-        ],
-        // Freitag
-        [
-            Lesson(subject: "Geschichte", room: "R1.112", teacher: "Herr Lehmann", timeSlot: "8:00 - 9:30", color: .cyan, startTime: Calendar.current.date(from: DateComponents(hour: 8, minute: 0))!, endTime: Calendar.current.date(from: DateComponents(hour: 9, minute: 30))!),
-            Lesson(subject: "Physik", room: "R3.102", teacher: "Herr Weber", timeSlot: "9:45 - 11:15", color: .yellow, startTime: Calendar.current.date(from: DateComponents(hour: 9, minute: 45))!, endTime: Calendar.current.date(from: DateComponents(hour: 11, minute: 15))!),
-            Lesson(subject: "Biologie", room: "R2.301", teacher: "Frau Fischer", timeSlot: "11:35 - 13:05", color: .green, startTime: Calendar.current.date(from: DateComponents(hour: 11, minute: 35))!, endTime: Calendar.current.date(from: DateComponents(hour: 13, minute: 5))!)
-        ]
-    ]
     
     var body: some View {
         NavigationView {
@@ -381,7 +324,7 @@ struct HomeView: View {
                             
                             if searchText.isEmpty || "fahrplan".contains(searchText.lowercased()) || "bus".contains(searchText.lowercased()) || "bahn".contains(searchText.lowercased()) || "mobiel".contains(searchText.lowercased()) || "verkehr".contains(searchText.lowercased()) || "transport".contains(searchText.lowercased()) {
                                 // Fahrplan-Widget
-                                TransportLinksWidget(dayOffset: 0, dayLabel: "Heute", lesson: Lesson(subject: "", room: "", teacher: "", timeSlot: "", color: .black, startTime: Date(), endTime: Date()))
+                                TransportLinksWidget()
                                     .frame(minWidth: 0, maxWidth: .infinity)
                             }
                             
@@ -439,52 +382,18 @@ struct HomeView: View {
     private func loadNextLesson() {
         print("loadNextLesson() wird aufgerufen")
         
-        // Verwende CoreDataManagerDummy als Fallback, falls CoreDataManager nicht verfügbar ist
-        let user: Any?
-        let schoolClass: String?
-        
-        // Versuche, CoreDataManager zu verwenden, falls verfügbar
-        #if canImport(CoreDataManager)
-        do {
-            print("Versuche CoreDataManager zu verwenden")
-            user = CoreDataManager.shared.getCurrentUser()
-            schoolClass = (user as? UserEntity)?.schoolClass
-            print("Benutzer aus CoreDataManager: \(user != nil ? "gefunden" : "nicht gefunden"), Jahrgang: \(schoolClass ?? "nicht gefunden")")
-        } catch {
-            // Fallback auf Dummy-Implementierung
-            print("Fehler beim Zugriff auf CoreDataManager: \(error), verwende Dummy")
-            user = CoreDataManagerDummy.shared.getCurrentUser()
-            schoolClass = (user as? UserEntityDummy)?.schoolClass
-            print("Benutzer aus CoreDataManagerDummy: \(user != nil ? "gefunden" : "nicht gefunden"), Jahrgang: \(schoolClass ?? "nicht gefunden")")
+        // Prüfe, ob ein Benutzer angemeldet ist und einen Jahrgang hat
+        guard let user = CoreDataManager.shared.getCurrentUser(), let schoolClass = user.schoolClass else {
+            print("Kein Benutzer angemeldet oder kein Jahrgang gesetzt")
+            nextLesson = nil
+            return
         }
-        #else
-        // Fallback auf Dummy-Implementierung
-        print("CoreDataManager nicht verfügbar, verwende Dummy")
-        user = CoreDataManagerDummy.shared.getCurrentUser()
-        schoolClass = (user as? UserEntityDummy)?.schoolClass
-        print("Benutzer aus CoreDataManagerDummy: \(user != nil ? "gefunden" : "nicht gefunden"), Jahrgang: \(schoolClass ?? "nicht gefunden")")
-        #endif
         
-        // Für Testzwecke: Wenn keine Klasse gefunden wurde, setze sie auf "10b"
-        if schoolClass == nil {
-            print("Kein Jahrgang gefunden, verwende '10b' für Testzwecke")
-            let testClass = "10b"
-            
-            // Prüfe, ob für diesen Jahrgang Stundenpläne existieren
-            print("Suche nach Stundenplänen für Jahrgang: \(testClass)")
-            
-            // Lade alle Termine für die nächsten 7 Tage und finde den nächsten Termin
-            if let nextLessonFromCalendar = findNextLessonFromCalendar(for: testClass) {
-                print("Nächste Stunde aus dem Kalender gefunden: \(nextLessonFromCalendar.0.subject)")
-                nextLesson = nextLessonFromCalendar
-                return
-            } else {
-                print("Keine nächste Stunde im Kalender gefunden für Jahrgang: \(testClass)")
-            }
-        }
-        // Prüfe, ob für diesen Jahrgang Stundenpläne existieren
-        else if let schoolClass = schoolClass {
-            print("Suche nach Stundenplänen für Jahrgang: \(schoolClass)")
+        print("Benutzer gefunden mit Jahrgang: \(schoolClass)")
+        
+        // Prüfe, ob für den Jahrgang Stundenpläne existieren
+        if TimetableService.timetableExists(for: schoolClass) {
+            print("Stundenpläne existieren für Jahrgang: \(schoolClass)")
             
             // Lade alle Termine für die nächsten 7 Tage und finde den nächsten Termin
             if let nextLessonFromCalendar = findNextLessonFromCalendar(for: schoolClass) {
@@ -495,12 +404,10 @@ struct HomeView: View {
                 print("Keine nächste Stunde im Kalender gefunden für Jahrgang: \(schoolClass)")
             }
         } else {
-            print("Kein Jahrgang gefunden")
+            print("Keine Stundenpläne für Jahrgang: \(schoolClass) gefunden")
         }
         
         // Wenn kein Kalender vorhanden ist oder keine Stunden gefunden wurden, setze nextLesson auf nil
-        // Dadurch wird im Widget "Keine Stunden" angezeigt
-        print("Setze nextLesson auf nil, da keine Stunden gefunden wurden")
         nextLesson = nil
     }
     
@@ -623,10 +530,6 @@ struct HomeView: View {
     private func searchLessons() -> [(Lesson, Int)] {
         var results: [(Lesson, Int)] = []
         
-        // Suche in den Dummy-Daten
-        let dummyResults = searchDummyLessons()
-        results.append(contentsOf: dummyResults)
-        
         // Suche in den echten Kalenderdaten
         let calendarResults = searchCalendarLessons()
         results.append(contentsOf: calendarResults)
@@ -637,67 +540,41 @@ struct HomeView: View {
         return results
     }
     
-    // Sucht in den Dummy-Daten nach passenden Terminen
-    private func searchDummyLessons() -> [(Lesson, Int)] {
-        var results: [(Lesson, Int)] = []
-        
-        // Suche in allen Tagen nach passenden Terminen
-        for (dayIndex, lessons) in lessonsByDay.enumerated() {
-            for lesson in lessons {
-                if matchesSearch(lesson: lesson, dayIndex: dayIndex) {
-                    // Berechne den Tagesversatz vom aktuellen Tag
-                    let dayOffset = calculateDayOffset(for: dayIndex)
-                    results.append((lesson, dayOffset))
-                }
-            }
-        }
-        
-        return results
-    }
-    
     // Sucht in den echten Kalenderdaten nach passenden Terminen
     private func searchCalendarLessons() -> [(Lesson, Int)] {
         var results: [(Lesson, Int)] = []
-        let searchLower = searchText.lowercased()
-        let calendar = Calendar.current
-        let now = Date()
         
-        // Verwende CoreDataManagerDummy als Fallback, falls CoreDataManager nicht verfügbar ist
-        let user: Any?
-        let schoolClass: String?
-        
-        #if canImport(CoreDataManager)
-        do {
-            user = CoreDataManager.shared.getCurrentUser()
-            schoolClass = (user as? UserEntity)?.schoolClass
-        } catch {
-            user = CoreDataManagerDummy.shared.getCurrentUser()
-            schoolClass = (user as? UserEntityDummy)?.schoolClass
+        // Prüfe, ob ein Benutzer angemeldet ist und einen Jahrgang hat
+        guard let user = CoreDataManager.shared.getCurrentUser(), let schoolClass = user.schoolClass else {
+            return []
         }
-        #else
-        user = CoreDataManagerDummy.shared.getCurrentUser()
-        schoolClass = (user as? UserEntityDummy)?.schoolClass
-        #endif
         
-        // Wenn keine Klasse gefunden wurde, verwende "10b" für Testzwecke
-        let classToSearch = schoolClass ?? "10b"
+        // Prüfe, ob für diesen Jahrgang Stundenpläne existieren
+        guard TimetableService.timetableExists(for: schoolClass) else {
+            return []
+        }
         
-        // Prüfe die nächsten 14 Tage
-        for dayOffset in 0...14 {
+        let searchLower = searchText.lowercased()
+        let now = Date()
+        let calendar = Calendar.current
+        
+        // Suche in den nächsten 14 Tagen
+        for dayOffset in 0..<14 {
             let checkDate = calendar.date(byAdding: .day, value: dayOffset, to: now)!
             let weekday = calendar.component(.weekday, from: checkDate)
             
-            // Überspringe Wochenenden (Samstag und Sonntag)
+            // Überspringe Wochenenden
             if weekday == 1 || weekday == 7 {
                 continue
             }
             
-            // Bestimme, ob es eine grüne oder rote Woche ist
-            let isGreenWeek = TimetableService.isGreenWeek(for: checkDate)
             let weekdayString = TimetableService.weekdayString(for: weekday)
             
-            // Lade den Stundenplan für diesen Tag
-            if let lessonData = TimetableService.loadTimetable(for: classToSearch, weekday: weekdayString, isGreenWeek: isGreenWeek) {
+            // Bestimme, ob es eine grüne oder rote Woche ist
+            let isGreenWeek = TimetableService.isGreenWeek(for: checkDate)
+            
+            // Lade den Stundenplan
+            if let lessonData = TimetableService.loadTimetable(for: schoolClass, weekday: weekdayString, isGreenWeek: isGreenWeek) {
                 // Konvertiere die Daten in Lesson-Objekte
                 let lessons = lessonData.map { TimetableService.convertToLesson(lessonData: $0, date: checkDate) }
                 
@@ -714,52 +591,6 @@ struct HomeView: View {
         }
         
         return results
-    }
-    
-    // Prüft, ob ein Termin zum Suchtext passt
-    private func matchesSearch(lesson: Lesson, dayIndex: Int) -> Bool {
-        let searchLower = searchText.lowercased()
-        
-        // Prüfe auf Übereinstimmungen mit Fach, Lehrer oder Raum
-        if lesson.subject.lowercased().contains(searchLower) ||
-           lesson.teacher.lowercased().contains(searchLower) ||
-           lesson.room.lowercased().contains(searchLower) {
-            return true
-        }
-        
-        // Prüfe auf Übereinstimmungen mit Wochentagen
-        let weekdays = ["montag", "dienstag", "mittwoch", "donnerstag", "freitag"]
-        if dayIndex < weekdays.count && searchLower.contains(weekdays[dayIndex]) {
-            return true
-        }
-        
-        // Prüfe auf "heute" oder "morgen"
-        let calendar = Calendar.current
-        let today = calendar.component(.weekday, from: Date())
-        let currentDayIndex = today == 1 ? 6 : today - 2 // Umrechnung auf 0 = Montag
-        
-        if searchLower.contains("heute") && dayIndex == currentDayIndex {
-            return true
-        }
-        
-        if searchLower.contains("morgen") && dayIndex == (currentDayIndex + 1) % 7 {
-            return true
-        }
-        
-        return false
-    }
-    
-    // Berechnet den Tagesversatz vom aktuellen Tag
-    private func calculateDayOffset(for dayIndex: Int) -> Int {
-        let calendar = Calendar.current
-        let today = calendar.component(.weekday, from: Date())
-        let currentDayIndex = today == 1 ? 6 : today - 2 // Umrechnung auf 0 = Montag
-        
-        if dayIndex >= currentDayIndex {
-            return dayIndex - currentDayIndex
-        } else {
-            return 7 - currentDayIndex + dayIndex
-        }
     }
     
     // Navigiert zur Kalenderansicht mit dem ausgewählten Datum
@@ -1284,9 +1115,9 @@ struct CustomFloatingMenuBar: View {
             .background(
                 ZStack {
                     if colorScheme == .dark {
-                        Color.black.opacity(0.95)
+                        Color(.systemGray6).opacity(0.98)
                     } else {
-                        Color(UIColor.systemGray6).opacity(0.95)
+                        Color(.systemGray4).opacity(0.98)
                     }
                 }
                 .background(
@@ -1322,6 +1153,8 @@ struct MenuBarButton: View {
     let action: () -> Void
     @Environment(\.colorScheme) var colorScheme
     
+    private let accentColor = Color(red: 34/255, green: 139/255, blue: 34/255) // Dunkleres Grün (Forest Green)
+    
     var body: some View {
         Button(action: action) {
             VStack(spacing: 1) {
@@ -1330,13 +1163,13 @@ struct MenuBarButton: View {
                         Circle()
                             .fill(
                                 LinearGradient(
-                                    gradient: Gradient(colors: [Color.blue, Color.blue.opacity(0.7)]),
+                                    gradient: Gradient(colors: [accentColor, accentColor.opacity(0.7)]),
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
                                 )
                             )
                             .frame(width: 36, height: 36)
-                            .shadow(color: Color.blue.opacity(0.5), radius: 6, x: 0, y: 2)
+                            .shadow(color: accentColor.opacity(0.5), radius: 6, x: 0, y: 2)
                             .transition(.scale.combined(with: .opacity))
                     }
                     
@@ -1348,7 +1181,7 @@ struct MenuBarButton: View {
                 
                 Text(label)
                     .font(.system(size: 9, weight: isSelected ? .semibold : .medium))
-                    .foregroundColor(isSelected ? .blue : (colorScheme == .dark ? .white.opacity(0.8) : .gray))
+                    .foregroundColor(isSelected ? accentColor : (colorScheme == .dark ? .white.opacity(0.8) : .gray))
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
             }
@@ -1495,139 +1328,135 @@ struct ContactInfoRow: View {
 
 // Widget für Fahrplan-Links
 struct TransportLinksWidget: View {
-    let dayOffset: Int
-    let dayLabel: String
-    let lesson: Lesson
     @Environment(\.colorScheme) var colorScheme
     
     var body: some View {
-        HStack(spacing: 16) {
-            // Farbiger Indikator und Icon
-            ZStack {
-                Circle()
-                    .fill(lesson.color.opacity(0.2))
-                    .frame(width: 44, height: 44)
+        VStack(alignment: .leading, spacing: 0) {
+            // Header
+            HStack {
+                Image(systemName: "tram.fill")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.white)
+                    .padding(10)
+                    .background(
+                        Circle()
+                            .fill(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [Color.blue, Color.blue.opacity(0.7)]),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                    )
                 
-                Image(systemName: getIconForSubject(lesson.subject))
-                    .font(.system(size: 18))
-                    .foregroundColor(lesson.color)
+                Text("Fahrplan")
+                    .font(.system(size: 18, weight: .semibold))
+                
+                Spacer()
             }
+            .padding(.horizontal, 16)
+            .padding(.top, 16)
+            .padding(.bottom, 12)
             
-            VStack(alignment: .leading, spacing: 8) {
-                // Fach und Raum
-                HStack {
-                    Text(lesson.subject)
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(.primary)
-                    
-                    Spacer()
-                    
-                    if !lesson.room.isEmpty {
-                        HStack(spacing: 4) {
-                            Image(systemName: "mappin.circle.fill")
-                                .font(.system(size: 12))
-                                .foregroundColor(lesson.color)
-                            
-                            Text(lesson.room)
-                                .font(.system(size: 14))
-                                .foregroundColor(.secondary)
-                        }
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 2)
-                        .background(
-                            RoundedRectangle(cornerRadius: 4)
-                                .fill(lesson.color.opacity(0.1))
-                        )
+            // Divider
+            Rectangle()
+                .fill(Color.gray.opacity(0.2))
+                .frame(height: 1)
+                .padding(.horizontal, 16)
+            
+            // Content
+            VStack(spacing: 16) {
+                // moBiel YOU App
+                Button(action: {
+                    if let url = URL(string: "https://apps.apple.com/de/app/mobiel-you/id1535032737") {
+                        UIApplication.shared.open(url)
                     }
-                }
-                
-                // Lehrer und Zeit
-                HStack {
-                    if !lesson.teacher.isEmpty {
-                        HStack(spacing: 4) {
-                            Image(systemName: "person.fill")
-                                .font(.system(size: 12))
-                                .foregroundColor(lesson.color)
+                }) {
+                    HStack(spacing: 16) {
+                        ZStack {
+                            Circle()
+                                .fill(Color.blue.opacity(0.1))
+                                .frame(width: 48, height: 48)
                             
-                            Text(lesson.teacher)
-                                .font(.system(size: 14))
-                                .foregroundColor(.secondary)
+                            Image(systemName: "iphone.and.arrow.forward")
+                                .font(.system(size: 20))
+                                .foregroundColor(.blue)
                         }
-                    }
-                    
-                    Spacer()
-                    
-                    HStack(spacing: 4) {
-                        Image(systemName: "clock.fill")
-                            .font(.system(size: 12))
-                            .foregroundColor(lesson.color)
                         
-                        Text(lesson.timeSlot)
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(.secondary)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("moBiel YOU App")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(.primary)
+                            
+                            Text("Tickets kaufen & Fahrpläne anzeigen")
+                                .font(.system(size: 14))
+                                .foregroundColor(.secondary)
+                                .lineLimit(1)
+                        }
+                        
+                        Spacer()
+                        
+                        Image(systemName: "arrow.up.right.square")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(.blue)
                     }
+                    .padding(.vertical, 12)
+                    .padding(.horizontal, 16)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(colorScheme == .dark ? Color(.systemGray6) : Color.white)
+                            .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
+                    )
                 }
                 
-                // Tag
-                HStack {
-                    Image(systemName: "calendar")
-                        .font(.system(size: 12))
-                        .foregroundColor(.blue)
-                    
-                    Text(dayLabel)
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(.blue)
-                    
-                    Spacer()
-                    
-                    Text("Zum Kalender")
-                        .font(.system(size: 12))
-                        .foregroundColor(.blue)
-                    
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 12))
-                        .foregroundColor(.blue)
+                // Fahrplanauskunft
+                Button(action: {
+                    if let url = URL(string: "https://www.mobiel.de/fahrplaene/fahrplanauskunft/verbindung-finden/") {
+                        UIApplication.shared.open(url)
+                    }
+                }) {
+                    HStack(spacing: 16) {
+                        ZStack {
+                            Circle()
+                                .fill(Color.blue.opacity(0.1))
+                                .frame(width: 48, height: 48)
+                            
+                            Image(systemName: "map")
+                                .font(.system(size: 20))
+                                .foregroundColor(.blue)
+                        }
+                        
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Fahrplanauskunft")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(.primary)
+                            
+                            Text("Verbindungen online suchen")
+                                .font(.system(size: 14))
+                                .foregroundColor(.secondary)
+                                .lineLimit(1)
+                        }
+                        
+                        Spacer()
+                        
+                        Image(systemName: "arrow.up.right.square")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(.blue)
+                    }
+                    .padding(.vertical, 12)
+                    .padding(.horizontal, 16)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(colorScheme == .dark ? Color(.systemGray6) : Color.white)
+                            .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
+                    )
                 }
             }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 16)
         }
-        .padding(.vertical, 12)
-        .padding(.horizontal, 16)
-        .padding(.bottom, 8)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(colorScheme == .dark ? Color(.systemGray6) : Color.white)
-                .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
-        )
-    }
-    
-    private func getIconForSubject(_ subject: String) -> String {
-        let subjectLower = subject.lowercased()
-        if subjectLower.contains("mathe") {
-            return "function"
-        } else if subjectLower.contains("deutsch") {
-            return "text.book.closed"
-        } else if subjectLower.contains("englisch") || subjectLower.contains("französisch") || subjectLower.contains("latein") || subjectLower.contains("russisch") {
-            return "globe"
-        } else if subjectLower.contains("physik") {
-            return "atom"
-        } else if subjectLower.contains("biologie") {
-            return "leaf"
-        } else if subjectLower.contains("chemie") {
-            return "flask"
-        } else if subjectLower.contains("geschichte") {
-            return "clock.arrow.circlepath"
-        } else if subjectLower.contains("kunst") {
-            return "paintbrush"
-        } else if subjectLower.contains("sport") {
-            return "figure.run"
-        } else if subjectLower.contains("informatik") {
-            return "desktopcomputer"
-        } else if subjectLower.contains("ethik") || subjectLower.contains("religion") {
-            return "heart"
-        } else if subjectLower.contains("erdkunde") || subjectLower.contains("geo") {
-            return "map"
-        } else {
-            return "book"
-        }
+        .background(colorScheme == .dark ? Color(.systemGray6).opacity(0.7) : Color.white)
+        .cornerRadius(16)
+        .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
     }
 }
