@@ -50,6 +50,7 @@ struct ContentView: View {
                 VStack {
                     Spacer()
                     CustomFloatingMenuBar(currentPage: $currentPage, isFloating: useFloatingMenuBar)
+                        .padding(.horizontal, 20)
                         .padding(.bottom, useFloatingMenuBar ? 0 : -8)
                 }
             }
@@ -1139,7 +1140,6 @@ struct CustomFloatingMenuBar: View {
                         lineWidth: isFloating ? 1 : 0
                     )
             )
-            .padding(.horizontal, isFloating ? 10 : 0)
             .padding(.bottom, isFloating ? 12 : 0)
         }
         .edgesIgnoringSafeArea(isFloating ? [] : [.bottom])
