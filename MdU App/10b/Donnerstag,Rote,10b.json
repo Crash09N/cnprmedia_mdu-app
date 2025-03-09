@@ -1,0 +1,20 @@
+[
+    {
+        "Fach": "Politik",
+        "Raum": "H216",
+        "Lehrer": "OSS",
+        "Zeit": "8:00-9:30"
+    },
+    {
+        "Fach": "Chemie",
+        "Raum": "CHD",
+        "Lehrer": "BEY",
+        "Zeit": "9:45-11:15"
+    },
+    {
+        "Fach": "Sport",
+        "Raum": "KSH",
+        "Lehrer": "DEC",
+        "Zeit": "11:35-13:05"
+    }
+]

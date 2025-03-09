@@ -1,0 +1,27 @@
+[
+    {
+        "Fach": "Mathe",
+        "Raum": "H216",
+        "Lehrer": "MLK",
+        "Zeit": "8:00-9:30"
+    },
+    {
+        "Fach": "Erdkunde",
+        "Raum": "EK1",
+        "Lehrer": "JAT",
+        "Zeit": "9:45-11:15"
+    },
+    {
+        "Fach": "Mathe-Info/NaWi/Russisch",
+        "Raum": "MED2/CHÜ/H216",
+        "Lehrer": "MAR/TES/VAU",
+        "Zeit": "11:35-13:05"
+    },
+    {
+        "Fach": "Physik",
+        "Raum": "PHÜ",
+        "Lehrer": "SR",
+        "Zeit": "13:50-15:20"
+    }
+   
+]

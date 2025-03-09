@@ -20,6 +20,11 @@
 			path = "MdU App";
 			sourceTree = "<group>";
 		};
+		DD3CEE9B2D7E230500C58662 /* 10b */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = 10b;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -45,6 +50,7 @@
 		4F4389422D6CD03D0029C881 /* Products */ = {
 			isa = PBXGroup;
 			children = (
+				DD3CEE9B2D7E230500C58662 /* 10b */,
 				4F4389412D6CD03D0029C881 /* MdU App.app */,
 			);
 			name = Products;

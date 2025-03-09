@@ -7,6 +7,35 @@
 
 import SwiftUI
 
+// Struktur für einen Unterrichtstermin
+struct Lesson: Identifiable {
+    let id: UUID
+    let subject: String
+    let room: String
+    let teacher: String
+    let timeSlot: String
+    let color: Color
+    let startTime: Date
+    let endTime: Date
+    let isSchoolEvent: Bool
+    let targetGroups: [String]
+    var notes: String
+    
+    init(subject: String, room: String = "", teacher: String = "", timeSlot: String, color: Color = .gray, startTime: Date, endTime: Date, isSchoolEvent: Bool = false, targetGroups: [String] = [], notes: String = "") {
+        self.id = UUID()
+        self.subject = subject
+        self.room = room
+        self.teacher = teacher
+        self.timeSlot = timeSlot
+        self.color = color
+        self.startTime = startTime
+        self.endTime = endTime
+        self.isSchoolEvent = isSchoolEvent
+        self.targetGroups = targetGroups
+        self.notes = notes
+    }
+}
+
 struct TimetableView: View {
     @State private var selectedDate = Date()
     @State private var today = Date()
@@ -51,15 +80,54 @@ struct TimetableView: View {
         guard !isLoading else { return }
         isLoading = true
         
-        // Mock-Daten laden
-        let mockLessons = [
-            Lesson(subject: "Mathematik", room: "R1.101", teacher: "Dr. Schmidt", timeSlot: "08:00 - 09:30", color: .red, startTime: selectedDate, endTime: selectedDate, notes: savedNotes[UUID()] ?? "Hausaufgaben: Seite 42, Aufgaben 1-5"),
-            Lesson(subject: "Englisch", room: "R2.102", teacher: "Fr. Müller", timeSlot: "09:45 - 11:15", color: .blue, startTime: selectedDate, endTime: selectedDate, notes: savedNotes[UUID()] ?? "Vokabeltest nächste Woche"),
-            Lesson(subject: "Deutsch", room: "R3.103", teacher: "Hr. Meyer", timeSlot: "11:30 - 13:00", color: .green, startTime: selectedDate, endTime: selectedDate, notes: savedNotes[UUID()] ?? "Buchvorstellung vorbereiten")
-        ]
+        // Prüfe, ob ein Benutzer angemeldet ist und einen Jahrgang hat
+        if let user = CoreDataManager.shared.getCurrentUser(), let schoolClass = user.schoolClass {
+            print("Benutzer gefunden mit Jahrgang: \(schoolClass)")
+            
+            // Prüfe, ob für diesen Jahrgang Stundenpläne existieren
+            if TimetableService.timetableExists(for: schoolClass) {
+                print("Stundenpläne existieren für Jahrgang: \(schoolClass)")
+                
+                // Bestimme den Wochentag
+                let weekday = calendar.component(.weekday, from: selectedDate)
+                let weekdayString = TimetableService.weekdayString(for: weekday)
+                print("Wochentag: \(weekdayString) (Index: \(weekday))")
+                
+                // Bestimme, ob es eine grüne oder rote Woche ist
+                let isGreenWeek = TimetableService.isGreenWeek(for: selectedDate)
+                print("Grüne Woche: \(isGreenWeek)")
+                
+                // Lade den Stundenplan
+                if let lessonData = TimetableService.loadTimetable(for: schoolClass, weekday: weekdayString, isGreenWeek: isGreenWeek) {
+                    print("Stundenplan geladen mit \(lessonData.count) Terminen")
+                    
+                    // Konvertiere die Daten in Lesson-Objekte
+                    let loadedLessons = lessonData.map { TimetableService.convertToLesson(lessonData: $0, date: selectedDate) }
+                    
+                    DispatchQueue.main.async {
+                        self.lessons = loadedLessons
+                        self.isLoading = false
+                    }
+                    return
+                } else {
+                    // Keine Daten für diesen Tag gefunden
+                    print("Keine Daten für \(weekdayString) (\(isGreenWeek ? "Grüne" : "Rote") Woche) gefunden")
+                    DispatchQueue.main.async {
+                        self.lessons = []
+                        self.isLoading = false
+                    }
+                    return
+                }
+            } else {
+                print("Keine Stundenpläne für Jahrgang: \(schoolClass) gefunden")
+            }
+        } else {
+            print("Kein Benutzer angemeldet oder kein Jahrgang gesetzt")
+        }
         
+        // Fallback auf leere Liste, wenn keine JSON-Daten geladen werden konnten
         DispatchQueue.main.async {
-            self.lessons = mockLessons
+            self.lessons = []
             self.isLoading = false
         }
     }
@@ -72,6 +140,24 @@ struct TimetableView: View {
         }
         
         return lessons
+    }
+    
+    // Bestimmt, ob der aktuelle Benutzer einen Stundenplan hat
+    private func userHasTimetable() -> Bool {
+        if let user = CoreDataManager.shared.getCurrentUser(), let schoolClass = user.schoolClass {
+            return TimetableService.timetableExists(for: schoolClass)
+        }
+        return false
+    }
+    
+    // Gibt den Jahrgang des aktuellen Benutzers zurück
+    private func currentUserClass() -> String? {
+        return CoreDataManager.shared.getCurrentUser()?.schoolClass
+    }
+    
+    // Gibt an, ob es sich um eine grüne oder rote Woche handelt
+    private func weekTypeString() -> String {
+        return TimetableService.isGreenWeek(for: selectedDate) ? "Grüne Woche" : "Rote Woche"
     }
 
     var body: some View {
@@ -141,6 +227,29 @@ struct TimetableView: View {
                 }
                 .padding(.horizontal)
                 .padding(.top, 8)
+                
+                // Anzeige des Jahrgangs und Wochentyps (rot/grün)
+                if let schoolClass = currentUserClass(), userHasTimetable() {
+                    HStack {
+                        Text("Klasse: \(schoolClass)")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                        
+                        Spacer()
+                        
+                        Text(weekTypeString())
+                            .font(.subheadline)
+                            .foregroundColor(TimetableService.isGreenWeek(for: selectedDate) ? .green : .red)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(TimetableService.isGreenWeek(for: selectedDate) ? Color.green.opacity(0.2) : Color.red.opacity(0.2))
+                            )
+                    }
+                    .padding(.horizontal)
+                    .padding(.top, 4)
+                }
 
                 // Wochenansicht
                 VStack(spacing: 0) {
@@ -200,18 +309,44 @@ struct TimetableView: View {
                                     Image(systemName: "calendar.badge.clock")
                                         .font(.system(size: 50))
                                         .foregroundColor(.gray)
-                                        .padding()
+                                        .padding(.top, 50)
                                     
-                                    Text("Keine Termine")
-                                        .font(.title2.bold())
-                                        .foregroundColor(.gray)
+                                    if let schoolClass = currentUserClass(), userHasTimetable() {
+                                        Text("Keine Termine für \(schoolClass) am \(formattedDate(selectedDate, format: "EEEE, dd.MM.yyyy"))")
+                                            .font(.headline)
+                                            .foregroundColor(.secondary)
+                                            .multilineTextAlignment(.center)
+                                            .padding(.horizontal)
+                                    } else {
+                                        Text("Keine Termine für den \(formattedDate(selectedDate, format: "EEEE, dd.MM.yyyy"))")
+                                            .font(.headline)
+                                            .foregroundColor(.secondary)
+                                            .multilineTextAlignment(.center)
+                                            .padding(.horizontal)
+                                        
+                                        if currentUserClass() == nil {
+                                            Text("Bitte melde dich an und wähle deinen Jahrgang, um deinen Stundenplan zu sehen.")
+                                                .font(.subheadline)
+                                                .foregroundColor(.secondary)
+                                                .multilineTextAlignment(.center)
+                                                .padding(.horizontal)
+                                                .padding(.top, 8)
+                                        } else {
+                                            Text("Für deinen Jahrgang sind keine Stundenpläne verfügbar.")
+                                                .font(.subheadline)
+                                                .foregroundColor(.secondary)
+                                                .multilineTextAlignment(.center)
+                                                .padding(.horizontal)
+                                                .padding(.top, 8)
+                                        }
+                                    }
                                 }
                                 .frame(maxWidth: .infinity)
-                                .padding(.top, 50)
+                                .padding(.vertical, 20)
                             } else {
+                                // Termine anzeigen
                                 ForEach(todaysLessons, id: \.id) { lesson in
-                                    LessonCard(lesson: lesson)
-                                        .padding(.horizontal)
+                                    LessonCard(lesson: lesson, savedNotes: savedNotes[lesson.id])
                                         .onTapGesture {
                                             selectedLesson = lesson
                                             showLessonDetail = true
@@ -220,431 +355,282 @@ struct TimetableView: View {
                             }
                         }
                     }
-                    .padding(.top, 20)
+                    .padding(.horizontal)
+                    .padding(.bottom, 30)
+                }
+                .onAppear {
+                    loadLessons()
+                }
+                .onChange(of: selectedDate) { _ in
+                    loadLessons()
+                }
+                .sheet(isPresented: $showDatePicker) {
+                    DatePickerView(selectedDate: $selectedDate, showDatePicker: $showDatePicker)
+                }
+                .sheet(isPresented: $showLessonDetail) {
+                    if let lesson = selectedLesson {
+                        LessonDetailView(
+                            lesson: lesson,
+                            onSaveNotes: { notes in
+                                if let id = selectedLesson?.id {
+                                    savedNotes[id] = notes
+                                }
+                            }
+                        )
+                    }
                 }
             }
             .navigationBarTitle("Stundenplan", displayMode: .inline)
-            .sheet(isPresented: $showDatePicker) {
-                DatePickerView(selectedDate: $selectedDate, showDatePicker: $showDatePicker)
-            }
-            .sheet(isPresented: $showLessonDetail) {
-                if let lesson = selectedLesson {
-                    LessonDetailView(
-                        lesson: lesson,
-                        onSaveNotes: { updatedNotes in
-                            // Speichere die Notizen
-                            savedNotes[lesson.id] = updatedNotes
-                            
-                            // Aktualisiere die Lektion in der Liste
-                            if let index = lessons.firstIndex(where: { $0.id == lesson.id }) {
-                                lessons[index].notes = updatedNotes
-                            }
-                        }
-                    )
-                }
-            }
-            .onAppear {
-                loadLessons()
-            }
         }
     }
 }
 
-// Neue LessonCard View für besseres Styling
+// Karte für einen Termin
 struct LessonCard: View {
     let lesson: Lesson
+    let savedNotes: String?
     @Environment(\.colorScheme) var colorScheme
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack(alignment: .center) {
-                // Zeitleiste
-                VStack(alignment: .trailing) {
-                    Text(lesson.timeSlot)
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(.gray)
-                }
-                .frame(width: 85)
-                
+            // Header
+            HStack {
                 Rectangle()
-                    .fill(lesson.isSchoolEvent ? Color.gray : lesson.color)
-                    .frame(width: 4, height: 65)
+                    .fill(lesson.color)
+                    .frame(width: 4)
                     .cornerRadius(2)
                 
-                // Hauptinhalt
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(lesson.subject)
-                        .font(.system(size: 18, weight: .bold))
-                    
-                    if lesson.isSchoolEvent {
-                        // Für Schultermine
-                        if !lesson.targetGroups.isEmpty {
-                            HStack(spacing: 12) {
-                                Label(lesson.targetGroups.joined(separator: ", "), systemImage: "person.2.fill")
-                                    .font(.system(size: 13))
-                                    .foregroundColor(.gray)
-                            }
-                        }
-                        
-                        if !lesson.room.isEmpty || !lesson.teacher.isEmpty {
-                            HStack(spacing: 12) {
-                                if !lesson.room.isEmpty {
-                                    Label(lesson.room, systemImage: "mappin.circle")
-                                        .font(.system(size: 13))
-                                        .foregroundColor(.gray)
-                                }
-                                
-                                if !lesson.teacher.isEmpty {
-                                    Label(lesson.teacher, systemImage: "info.circle")
-                                        .font(.system(size: 13))
-                                        .foregroundColor(.gray)
-                                }
-                            }
-                        }
-                    } else {
-                        // Für reguläre Unterrichtsstunden
-                        HStack(spacing: 12) {
-                            Label(lesson.room, systemImage: "location.fill")
-                            Label(lesson.teacher, systemImage: "person.fill")
-                        }
-                        .font(.system(size: 13))
-                        .foregroundColor(.gray)
-                    }
-                }
-                .padding(.leading, 12)
+                Text(lesson.timeSlot)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(.secondary)
                 
                 Spacer()
+                
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14))
+                    .foregroundColor(.gray)
             }
-            .padding(.vertical, 16)
-            .padding(.horizontal, 12)
+            .padding(.vertical, 12)
+            .padding(.horizontal, 16)
+            .background(colorScheme == .dark ? Color(.systemGray6) : Color.white)
+            
+            // Divider
+            Rectangle()
+                .fill(Color.gray.opacity(0.2))
+                .frame(height: 1)
+                .padding(.horizontal, 16)
+            
+            // Content
+            VStack(alignment: .leading, spacing: 12) {
+                // Subject
+                Text(lesson.subject)
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundColor(.primary)
+                
+                // Room and Teacher
+                HStack {
+                    if !lesson.room.isEmpty {
+                        HStack(spacing: 4) {
+                            Image(systemName: "mappin.circle.fill")
+                                .font(.system(size: 14))
+                                .foregroundColor(lesson.color)
+                            
+                            Text(lesson.room)
+                                .font(.system(size: 14))
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    
+                    Spacer()
+                    
+                    if !lesson.teacher.isEmpty {
+                        HStack(spacing: 4) {
+                            Image(systemName: "person.fill")
+                                .font(.system(size: 14))
+                                .foregroundColor(lesson.color)
+                            
+                            Text(lesson.teacher)
+                                .font(.system(size: 14))
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+                
+                // Notes (if any)
+                if let notes = savedNotes, !notes.isEmpty {
+                    HStack(spacing: 4) {
+                        Image(systemName: "note.text")
+                            .font(.system(size: 14))
+                            .foregroundColor(lesson.color)
+                        
+                        Text(notes)
+                            .font(.system(size: 14))
+                            .foregroundColor(.secondary)
+                            .lineLimit(1)
+                    }
+                    .padding(.top, 4)
+                } else if !lesson.notes.isEmpty {
+                    HStack(spacing: 4) {
+                        Image(systemName: "note.text")
+                            .font(.system(size: 14))
+                            .foregroundColor(lesson.color)
+                        
+                        Text(lesson.notes)
+                            .font(.system(size: 14))
+                            .foregroundColor(.secondary)
+                            .lineLimit(1)
+                    }
+                    .padding(.top, 4)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
         }
-        .background(colorScheme == .dark ? Color.black.opacity(0.3) : Color.white)
-        .cornerRadius(12)
-        .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 4)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(colorScheme == .dark ? Color(.systemGray6) : Color.white)
+                .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
+        )
     }
 }
 
-// DatePickerView mit modernem Kalender-Design
+// Datumsauswahl-View
 struct DatePickerView: View {
     @Binding var selectedDate: Date
     @Binding var showDatePicker: Bool
-    @State private var selectedMonth: Date
-    
-    init(selectedDate: Binding<Date>, showDatePicker: Binding<Bool>) {
-        self._selectedDate = selectedDate
-        self._showDatePicker = showDatePicker
-        self._selectedMonth = State(initialValue: selectedDate.wrappedValue)
-    }
-    
-    private let calendar = Calendar.current
-    private let monthFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MMMM yyyy"
-        return formatter
-    }()
-    
-    private let dayFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "d"
-        return formatter
-    }()
-    
-    private func moveMonth(by months: Int) {
-        if let newDate = calendar.date(byAdding: .month, value: months, to: selectedMonth) {
-            selectedMonth = newDate
-        }
-    }
-    
-    private func daysInMonth(for date: Date) -> [Date] {
-        guard let monthInterval = calendar.dateInterval(of: .month, for: date),
-              let monthFirstWeek = calendar.dateInterval(of: .weekOfMonth, for: monthInterval.start),
-              let monthLastWeek = calendar.dateInterval(of: .weekOfMonth, for: monthInterval.end - 1) else {
-            return []
-        }
-        
-        let dateInterval = DateInterval(start: monthFirstWeek.start, end: monthLastWeek.end)
-        
-        var dates: [Date] = []
-        calendar.enumerateDates(
-            startingAfter: dateInterval.start - 1,
-            matching: DateComponents(hour: 0, minute: 0, second: 0),
-            matchingPolicy: .nextTime
-        ) { date, _, stop in
-            if let date = date {
-                if date <= dateInterval.end {
-                    dates.append(date)
-                } else {
-                    stop = true
-                }
-            }
-        }
-        return dates
-    }
+    @Environment(\.colorScheme) var colorScheme
     
     var body: some View {
-        VStack(spacing: 0) {
-            // Header
-            HStack {
-                Button(action: { showDatePicker = false }) {
-                    Text("Abbrechen")
-                        .foregroundColor(.red)
-                }
+        NavigationView {
+            VStack {
+                DatePicker(
+                    "Datum auswählen",
+                    selection: $selectedDate,
+                    displayedComponents: [.date]
+                )
+                .datePickerStyle(GraphicalDatePickerStyle())
+                .padding()
+                .background(colorScheme == .dark ? Color(.systemGray6) : Color.white)
+                .cornerRadius(12)
+                .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
+                .padding()
                 
                 Spacer()
-                
-                Button(action: { showDatePicker = false }) {
-                    Text("Fertig")
-                        .foregroundColor(.blue)
-                }
             }
-            .padding()
-            
-            // Month Navigation
-            HStack {
-                Button(action: { moveMonth(by: -1) }) {
-                    Image(systemName: "chevron.left")
-                        .foregroundColor(.gray)
-                        .imageScale(.large)
-                        .padding()
+            .navigationBarTitle("Datum auswählen", displayMode: .inline)
+            .navigationBarItems(
+                leading: Button("Abbrechen") {
+                    showDatePicker = false
+                },
+                trailing: Button("Fertig") {
+                    showDatePicker = false
                 }
-                
-                Text(monthFormatter.string(from: selectedMonth))
-                    .font(.title2)
-                    .fontWeight(.bold)
-                    .frame(maxWidth: .infinity)
-                
-                Button(action: { moveMonth(by: 1) }) {
-                    Image(systemName: "chevron.right")
-                        .foregroundColor(.gray)
-                        .imageScale(.large)
-                        .padding()
-                }
-            }
-            .padding(.horizontal)
-            
-            // Weekday Headers
-            HStack {
-                ForEach(["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"], id: \.self) { day in
-                    Text(day)
-                        .font(.caption)
-                        .fontWeight(.bold)
-                        .foregroundColor(.gray)
-                        .frame(maxWidth: .infinity)
-                }
-            }
-            .padding(.horizontal)
-            
-            // Calendar Grid
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 8) {
-                ForEach(daysInMonth(for: selectedMonth), id: \.self) { date in
-                    Button(action: {
-                        selectedDate = date
-                        withAnimation {
-                            showDatePicker = false
-                        }
-                    }) {
-                        Text(dayFormatter.string(from: date))
-                            .font(.system(.body, design: .rounded))
-                            .frame(height: 40)
-                            .frame(maxWidth: .infinity)
-                            .background(
-                                calendar.isDate(date, inSameDayAs: selectedDate) ?
-                                    Color.blue :
-                                    calendar.isDate(date, inSameDayAs: Date()) ?
-                                        Color.blue.opacity(0.3) :
-                                        calendar.component(.month, from: date) == calendar.component(.month, from: selectedMonth) ?
-                                            Color.clear :
-                                            Color.gray.opacity(0.1)
-                            )
-                            .foregroundColor(
-                                calendar.isDate(date, inSameDayAs: selectedDate) ?
-                                    .white :
-                                    calendar.component(.month, from: date) == calendar.component(.month, from: selectedMonth) ?
-                                        .primary :
-                                        .gray
-                            )
-                            .clipShape(RoundedRectangle(cornerRadius: 10))
-                    }
-                }
-            }
-            .padding()
-            
-            Spacer()
+            )
         }
-        .background(Color(UIColor.systemBackground))
-    }
-}
-
-// 🔹 Lesson Model
-struct Lesson: Identifiable {
-    let id: UUID
-    let subject: String
-    let room: String
-    let teacher: String
-    let timeSlot: String
-    let color: Color
-    let startTime: Date
-    let endTime: Date
-    let isSchoolEvent: Bool
-    let targetGroups: [String]
-    var notes: String
-    
-    init(subject: String, room: String = "", teacher: String = "", timeSlot: String, color: Color = .gray, startTime: Date, endTime: Date, isSchoolEvent: Bool = false, targetGroups: [String] = [], notes: String = "") {
-        self.id = UUID()
-        self.subject = subject
-        self.room = room
-        self.teacher = teacher
-        self.timeSlot = timeSlot
-        self.color = color
-        self.startTime = startTime
-        self.endTime = endTime
-        self.isSchoolEvent = isSchoolEvent
-        self.targetGroups = targetGroups
-        self.notes = notes
     }
 }
 
 // Detailansicht für Termine
 struct LessonDetailView: View {
     let lesson: Lesson
-    let onSaveNotes: (String) -> Void
+    var onSaveNotes: (String) -> Void
+    
     @Environment(\.presentationMode) var presentationMode
-    @Environment(\.colorScheme) var colorScheme
     @State private var notes: String
-    @State private var isEditingNotes = false
     
     init(lesson: Lesson, onSaveNotes: @escaping (String) -> Void) {
         self.lesson = lesson
         self.onSaveNotes = onSaveNotes
-        self._notes = State(initialValue: lesson.notes)
+        _notes = State(initialValue: lesson.notes)
     }
-    
-    private let dateFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .full
-        formatter.timeStyle = .none
-        return formatter
-    }()
     
     var body: some View {
         NavigationView {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    // Header mit Farbbalken
-                    HStack {
-                        Rectangle()
-                            .fill(lesson.isSchoolEvent ? Color.gray : lesson.color)
-                            .frame(width: 8)
-                            .cornerRadius(4)
+                    // Header mit Fach und Zeit
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(lesson.subject)
+                            .font(.system(size: 28, weight: .bold))
+                            .foregroundColor(.primary)
                         
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text(lesson.subject)
-                                .font(.title)
-                                .fontWeight(.bold)
+                        HStack {
+                            Image(systemName: "clock.fill")
+                                .foregroundColor(lesson.color)
                             
                             Text(lesson.timeSlot)
-                                .font(.headline)
-                                .foregroundColor(.gray)
+                                .foregroundColor(.secondary)
                         }
-                        .padding(.leading, 8)
-                        
-                        Spacer()
+                        .font(.system(size: 16))
                     }
-                    .padding()
-                    .background(colorScheme == .dark ? Color.black.opacity(0.3) : Color.white)
-                    .cornerRadius(12)
-                    .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
+                    .padding(.bottom, 10)
                     
-                    // Informationsblöcke
-                    VStack(alignment: .leading, spacing: 12) {
-                        if lesson.isSchoolEvent {
-                            // Für Schultermine
-                            InfoSection(title: "Art", content: "Schulevent", icon: "calendar.badge.exclamationmark")
+                    // Raum und Lehrer
+                    if !lesson.room.isEmpty || !lesson.teacher.isEmpty {
+                        VStack(alignment: .leading, spacing: 12) {
+                            if !lesson.room.isEmpty {
+                                HStack(spacing: 10) {
+                                    Image(systemName: "mappin.circle.fill")
+                                        .foregroundColor(lesson.color)
+                                        .frame(width: 24)
+                                    
+                                    Text("Raum")
+                                        .font(.system(size: 16, weight: .medium))
+                                        .foregroundColor(.secondary)
+                                        .frame(width: 80, alignment: .leading)
+                                    
+                                    Text(lesson.room)
+                                        .font(.system(size: 16))
+                                }
+                            }
                             
-                            if !lesson.targetGroups.isEmpty {
-                                InfoSection(title: "Zielgruppe", content: lesson.targetGroups.joined(separator: ", "), icon: "person.2.fill")
-                            }
-                        } else {
-                            // Für reguläre Unterrichtsstunden
-                            InfoSection(title: "Art", content: "Unterrichtsstunde", icon: "book.fill")
-                        }
-                        
-                        if !lesson.room.isEmpty {
-                            InfoSection(title: "Ort", content: lesson.room, icon: "mappin.circle.fill")
-                        }
-                        
-                        if !lesson.teacher.isEmpty {
-                            InfoSection(title: lesson.isSchoolEvent ? "Information" : "Lehrkraft", content: lesson.teacher, icon: lesson.isSchoolEvent ? "info.circle.fill" : "person.fill")
-                        }
-                        
-                        // Datum
-                        InfoSection(title: "Datum", content: dateFormatter.string(from: lesson.startTime), icon: "calendar")
-                        
-                        // Notizen (nur für Schulstunden)
-                        if !lesson.isSchoolEvent {
-                            VStack(alignment: .leading, spacing: 8) {
-                                HStack {
-                                    Image(systemName: "note.text")
-                                        .foregroundColor(.blue)
-                                    Text("Notizen")
-                                        .font(.headline)
+                            if !lesson.teacher.isEmpty {
+                                HStack(spacing: 10) {
+                                    Image(systemName: "person.fill")
+                                        .foregroundColor(lesson.color)
+                                        .frame(width: 24)
                                     
-                                    Spacer()
+                                    Text("Lehrer")
+                                        .font(.system(size: 16, weight: .medium))
+                                        .foregroundColor(.secondary)
+                                        .frame(width: 80, alignment: .leading)
                                     
-                                    Button(action: {
-                                        // Wenn wir den Bearbeitungsmodus verlassen, speichern wir automatisch
-                                        if isEditingNotes {
-                                            saveNotes()
-                                        }
-                                        isEditingNotes.toggle()
-                                    }) {
-                                        Text(isEditingNotes ? "Fertig" : "Bearbeiten")
-                                            .foregroundColor(.blue)
-                                    }
-                                }
-                                
-                                if isEditingNotes {
-                                    TextEditor(text: $notes)
-                                        .frame(minHeight: 100)
-                                        .padding(8)
-                                        .background(Color.gray.opacity(0.1))
-                                        .cornerRadius(8)
-                                        .onChange(of: notes) { newValue in
-                                            // Speichere die Notizen automatisch bei jeder Änderung
-                                            onSaveNotes(newValue)
-                                        }
-                                } else {
-                                    if notes.isEmpty {
-                                        Text("Keine Notizen vorhanden")
-                                            .italic()
-                                            .foregroundColor(.gray)
-                                            .padding(.leading, 26)
-                                    } else {
-                                        Text(notes)
-                                            .padding(.leading, 26)
-                                    }
+                                    Text(lesson.teacher)
+                                        .font(.system(size: 16))
                                 }
                             }
-                            .padding(.vertical, 8)
                         }
+                        .padding(.bottom, 10)
+                    }
+                    
+                    // Notizen
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack {
+                            Image(systemName: "note.text")
+                                .foregroundColor(lesson.color)
+                            
+                            Text("Notizen")
+                                .font(.system(size: 18, weight: .semibold))
+                        }
+                        
+                        TextEditor(text: $notes)
+                            .frame(minHeight: 150)
+                            .padding(10)
+                            .background(Color(.systemGray6))
+                            .cornerRadius(8)
+                            .onChange(of: notes) { newValue in
+                                // Speichere die Notizen automatisch beim Tippen
+                                onSaveNotes(newValue)
+                            }
                     }
                 }
                 .padding()
             }
             .navigationBarTitle("Termindetails", displayMode: .inline)
-            .navigationBarItems(trailing: Button("Schließen") {
+            .navigationBarItems(trailing: Button("Fertig") {
                 presentationMode.wrappedValue.dismiss()
             })
         }
-    }
-    
-    private func saveNotes() {
-        // Rufe den Callback auf, um die Notizen zu speichern
-        onSaveNotes(notes)
-        
-        // Zeige kurze Bestätigung
-        let generator = UINotificationFeedbackGenerator()
-        generator.notificationOccurred(.success)
     }
 }
 

@@ -1,0 +1,20 @@
+[
+    {
+        "Fach": "Mathe-Info/NaWi/Russisch",
+        "Raum": "MED2/CHÜ/H216",
+        "Lehrer": "MAR/TES/VAU",
+        "Zeit": "8:00-9:30"
+    },
+    {
+        "Fach": "Sport",
+        "Raum": "GSH1",
+        "Lehrer": "DEC",
+        "Zeit": "9:45-11:15"
+    },
+    {
+        "Fach": "Deutsch",
+        "Raum": "H216",
+        "Lehrer": "AN",
+        "Zeit": "11:35-13:05"
+    }
+]

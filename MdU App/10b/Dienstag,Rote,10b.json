@@ -1,0 +1,20 @@
+[
+    {
+        "Fach": "Kath./Evan.Religion",
+        "Raum": "I109/H216",
+        "Lehrer": "KOB/STI",
+        "Zeit": "8:00-9:30"
+    },
+    {
+        "Fach": "Geschichte",
+        "Raum": "H216",
+        "Lehrer": "RAU",
+        "Zeit": "9:45-11:15"
+    },
+    {
+        "Fach": "Mathe-Info/NaWi/Russisch",
+        "Raum": "MED2/MED3/H216",
+        "Lehrer": "MAR/TES/VAU",
+        "Zeit": "11:35-13:05"
+    }
+]

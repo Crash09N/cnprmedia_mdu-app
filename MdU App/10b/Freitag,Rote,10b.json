@@ -1,0 +1,20 @@
+[
+    {
+        "Fach": "Latein/Französisch",
+        "Raum": "I107/H109/H216",
+        "Lehrer": "RUE/HOCK/ELT",
+        "Zeit": "8:00-9:30"
+    },
+    {
+        "Fach": "Englisch",
+        "Raum": "H216",
+        "Lehrer": "KLE",
+        "Zeit": "9:45-11:15"
+    },
+    {
+        "Fach": "Mathe",
+        "Raum": "H216",
+        "Lehrer": "MLK",
+        "Zeit": "11:35-13:05"
+    }
+]
