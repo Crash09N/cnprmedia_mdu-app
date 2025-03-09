@@ -541,42 +541,58 @@ struct SettingsView: View {
     @AppStorage("isDarkMode") private var isDarkMode = false
     @AppStorage("notificationsEnabled") private var notificationsEnabled = true
     @AppStorage("autoSync") private var autoSync = true
+    @AppStorage("showHolidays") private var showHolidays = true
+    @AppStorage("useFloatingMenuBar") private var useFloatingMenuBar = true
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 15) {
-                Text("Einstellungen")
-                    .font(.title2)
-                    .bold()
-                    .foregroundColor(.blue)
-                    .padding(.top, 5)
-
-                Form {
-                    Section(header: Text("Erscheinungsbild")) {
-                        Toggle("Dark Mode", isOn: $isDarkMode)
-                    }
-
-                    Section(header: Text("Benachrichtigungen")) {
-                        Toggle("Benachrichtigungen aktivieren", isOn: $notificationsEnabled)
-                    }
-
-                    Section(header: Text("Synchronisation")) {
-                        Toggle("Automatische Synchronisation", isOn: $autoSync)
-                    }
-
-                    Section(header: Text("App-Info")) {
-                        HStack {
-                            Text("Version")
-                            Spacer()
-                            Text("1.0.0")
-                                .foregroundColor(.gray)
-                        }
+        Form {
+            Section(header: Text("Erscheinungsbild")) {
+                Toggle("Dark Mode", isOn: $isDarkMode)
+                
+                Toggle(isOn: $useFloatingMenuBar) {
+                    Label {
+                        Text("Schwebende Menüleiste")
+                    } icon: {
+                        Image(systemName: useFloatingMenuBar ? "dock.rectangle" : "rectangle.dock")
+                            .foregroundColor(.blue)
                     }
                 }
-                .frame(height: 300)
-                .padding(.bottom, 50)
+                .onChange(of: useFloatingMenuBar) { newValue in
+                    // Haptisches Feedback beim Umschalten
+                    let generator = UIImpactFeedbackGenerator(style: .medium)
+                    generator.impactOccurred()
+                }
+            }
+
+            Section(header: Text("Benachrichtigungen")) {
+                Toggle("Benachrichtigungen aktivieren", isOn: $notificationsEnabled)
+            }
+
+            Section(header: Text("Synchronisation")) {
+                Toggle("Automatische Synchronisation", isOn: $autoSync)
+            }
+
+            Section(header: Text("Kalender")) {
+                Toggle(isOn: $showHolidays) {
+                    Label {
+                        Text("Feiertage anzeigen")
+                    } icon: {
+                        Image(systemName: "calendar")
+                            .foregroundColor(.blue)
+                    }
+                }
+            }
+
+            Section(header: Text("App-Info")) {
+                HStack {
+                    Text("Version")
+                    Spacer()
+                    Text("1.0.0")
+                        .foregroundColor(.gray)
+                }
             }
         }
+        .navigationTitle("Einstellungen")
     }
 }
 
