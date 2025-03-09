@@ -853,7 +853,7 @@ struct NextLessonWidget: View {
                                         )
                                     )
                                 )
-                            
+                            )
                     }
                     .padding(.horizontal, 16)
                     .padding(.top, 16)
@@ -1248,7 +1248,7 @@ struct SchoolContactWidget: View {
                                 )
                             )
                         )
-                    
+                    )
                 
                 Text("Kontakt")
                     .font(.system(size: 18, weight: .semibold))
@@ -1381,7 +1381,7 @@ struct TransportLinksWidget: View {
                                 )
                             )
                         )
-                    
+                    )
                 }
                 
                 Text("Fahrplan")
@@ -1490,10 +1490,16 @@ struct TransportLinksWidget: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 16)
         }
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(colorScheme == .dark ? Color(.systemGray6) : Color.white)
+                .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: 5)
+        )
     }
-}
 
-struct TransportLinksWidget: View {struct LessonSearchResultRow: View {
+
+// Zeile für ein Suchergebnis
+struct LessonSearchResultRow: View {
     let lesson: Lesson
     let dayOffset: Int
     let dayLabel: String
@@ -1592,16 +1598,21 @@ struct TransportLinksWidget: View {struct LessonSearchResultRow: View {
                 .padding(.vertical, 12)
             }
             .padding(.horizontal, 12)
-        .padding(.horizontal, 16)
-        .padding(.bottom, 8)
-                .padding(.vertical, 12)
-            }
         }
-        .padding(.horizontal, 12)
         .padding(.horizontal, 16)
         .padding(.bottom, 8)
         .background(
-            RoundedRectangle(cornerRadius: 12)        if subjectLower.contains("mathe") {
+            RoundedRectangle(cornerRadius: 12)
+                .fill(colorScheme == .dark ? Color(.systemGray6) : Color.white)
+                .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
+        )
+    }
+    
+    // Gibt ein passendes Icon für das Fach zurück
+    private func getIconForSubject(_ subject: String) -> String {
+        let subjectLower = subject.lowercased()
+        
+        if subjectLower.contains("mathe") {
             return "function"
         } else if subjectLower.contains("deutsch") {
             return "text.book.closed"
@@ -1629,6 +1640,5 @@ struct TransportLinksWidget: View {struct LessonSearchResultRow: View {
             return "book"
         }
     }
-
-
 }
+

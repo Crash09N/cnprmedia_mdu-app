@@ -1,0 +1,21 @@
+[
+    {
+        "Fach": "Kath./Evan.Religion",
+        "Raum": "I109/H216",
+        "Lehrer": "KOB/STI",
+        "Zeit": "8:00-9:30"
+    },
+    {
+        "Fach": "Deutsch",
+        "Raum": "H216",
+        "Lehrer": "AN",
+        "Zeit": "9:45-11:15"
+    },
+    {
+        "Fach": "Englisch",
+        "Raum": "H216",
+        "Lehrer": "KLE",
+        "Zeit": "11:35-13:05"
+    }
+   
+]
