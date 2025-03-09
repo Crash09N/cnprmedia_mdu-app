@@ -9,4 +9,5 @@ de/marienschule/api/WordPressService$ApiResponse.class
 de/marienschule/api/NextcloudService.class
 de/marienschule/api/WordPressService$ServerStatus.class
 de/marienschule/api/NextcloudController.class
+de/marienschule/api/NextcloudService$4.class
 de/marienschule/api/MarienschuleBackendApplication.class

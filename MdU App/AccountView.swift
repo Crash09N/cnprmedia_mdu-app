@@ -177,7 +177,42 @@ struct AccountView: View {
         }
         .onReceive(oauthService.$error) { error in
             if let error = error {
-                errorMessage = error.localizedDescription
+                print("DEBUG: AccountView - Received error: \(error.localizedDescription)")
+                
+                // Versuche, eine benutzerfreundlichere Fehlermeldung zu erstellen
+                if let nsError = error as? NSError {
+                    switch nsError.domain {
+                    case "NextcloudService":
+                        switch nsError.code {
+                        case 7:
+                            errorMessage = "Der Server hat eine HTML-Seite statt JSON zurückgegeben. Bitte überprüfe die Server-Konfiguration."
+                        case 8:
+                            errorMessage = nsError.localizedDescription
+                        default:
+                            errorMessage = nsError.localizedDescription
+                        }
+                    case NSURLErrorDomain:
+                        switch nsError.code {
+                        case NSURLErrorNotConnectedToInternet:
+                            errorMessage = "Keine Internetverbindung. Bitte überprüfe deine Verbindung und versuche es erneut."
+                        case NSURLErrorTimedOut:
+                            errorMessage = "Zeitüberschreitung bei der Verbindung zum Server. Bitte versuche es später erneut."
+                        case NSURLErrorCannotFindHost, NSURLErrorCannotConnectToHost:
+                            errorMessage = "Der Server ist nicht erreichbar. Bitte überprüfe die Server-Adresse und versuche es erneut."
+                        default:
+                            errorMessage = "Netzwerkfehler: \(nsError.localizedDescription)"
+                        }
+                    default:
+                        if error.localizedDescription.contains("data couldn't be read") {
+                            errorMessage = "Die Antwort vom Server konnte nicht verarbeitet werden. Bitte überprüfe, ob der Server korrekt konfiguriert ist."
+                        } else {
+                            errorMessage = error.localizedDescription
+                        }
+                    }
+                } else {
+                    errorMessage = error.localizedDescription
+                }
+                
                 showingError = true
                 isLoggingIn = false
             }
@@ -185,7 +220,17 @@ struct AccountView: View {
     }
     
     private func login() {
+        print("DEBUG: AccountView - Starting login with username: \(username)")
         isLoggingIn = true
+        
+        // Überprüfe, ob die Eingaben gültig sind
+        if username.isEmpty || password.isEmpty {
+            errorMessage = "Bitte gib Benutzername und Passwort ein."
+            showingError = true
+            isLoggingIn = false
+            return
+        }
+        
         oauthService.loginWithCredentials(username: username, password: password)
     }
     

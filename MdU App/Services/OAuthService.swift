@@ -29,12 +29,16 @@ class OAuthService: NSObject, ObservableObject, ASWebAuthenticationPresentationC
         isAuthenticating = true
         error = nil
         
+        print("DEBUG: OAuthService - Starting login with credentials for username: \(username)")
+        
         // Verwende den NextcloudService für die Anmeldung
         nextcloudService.login(username: username, password: password) { [weak self] result in
             guard let self = self else { return }
             
             switch result {
             case .success(let nextcloudUser):
+                print("DEBUG: OAuthService - Login successful for user: \(nextcloudUser.username)")
+                
                 // Speichere das Passwort sicher in der Keychain
                 KeychainManager.savePassword(password, for: username)
                 
@@ -54,10 +58,14 @@ class OAuthService: NSObject, ObservableObject, ASWebAuthenticationPresentationC
                 
                 // Rufe den gespeicherten Benutzer ab
                 if let user = coreDataManager.getCurrentUser() {
+                    print("DEBUG: OAuthService - User saved to Core Data: \(user.username ?? "unknown")")
                     self.onAuthenticationCompleted?(user)
+                } else {
+                    print("DEBUG: OAuthService - Failed to retrieve user from Core Data")
                 }
                 
             case .failure(let error):
+                print("DEBUG: OAuthService - Login failed with error: \(error.localizedDescription)")
                 self.error = error
             }
             

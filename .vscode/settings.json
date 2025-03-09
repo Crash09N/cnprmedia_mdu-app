@@ -1,8 +1,5 @@
 {
-    "editor.quickSuggestions": {
-        "comments": "off",
-        "strings": "off",
-        "other": "off"
-    },
-    "java.compile.nullAnalysis.mode": "disabled"
+    "editor.quickSuggestions": false,
+    "java.compile.nullAnalysis.mode": "disabled",
+    "java.configuration.updateBuildConfiguration": "interactive"
 }
