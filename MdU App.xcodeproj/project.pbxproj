@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		DD3CEE862D7E053700C58662 /* SwiftSoup in Frameworks */ = {isa = PBXBuildFile; productRef = DD3CEE852D7E053700C58662 /* SwiftSoup */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		4F4389412D6CD03D0029C881 /* MdU App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "MdU App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -23,6 +27,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				DD3CEE862D7E053700C58662 /* SwiftSoup in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -65,6 +70,7 @@
 			);
 			name = "MdU App";
 			packageProductDependencies = (
+				DD3CEE852D7E053700C58662 /* SwiftSoup */,
 			);
 			productName = "MdU App";
 			productReference = 4F4389412D6CD03D0029C881 /* MdU App.app */;
@@ -94,6 +100,9 @@
 			);
 			mainGroup = 4F4389382D6CD03D0029C881;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				DD3CEE842D7E053700C58662 /* XCRemoteSwiftPackageReference "SwiftSoup" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 4F4389422D6CD03D0029C881 /* Products */;
 			projectDirPath = "";
@@ -332,6 +341,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		DD3CEE842D7E053700C58662 /* XCRemoteSwiftPackageReference "SwiftSoup" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/scinfu/SwiftSoup.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.8.5;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		DD3CEE852D7E053700C58662 /* SwiftSoup */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DD3CEE842D7E053700C58662 /* XCRemoteSwiftPackageReference "SwiftSoup" */;
+			productName = SwiftSoup;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 4F4389392D6CD03D0029C881 /* Project object */;
 }
