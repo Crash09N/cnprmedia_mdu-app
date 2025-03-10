@@ -770,6 +770,9 @@ struct LessonSearchResultRow: View {
 struct NextLessonWidget: View {
     let nextLesson: (Lesson, Int)?
     @Environment(\.colorScheme) var colorScheme
+    @State private var currentTime = Date()
+    
+    let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
     var body: some View {
         Group {
@@ -908,6 +911,9 @@ struct NextLessonWidget: View {
                         .fill(colorScheme == .dark ? Color(.systemGray6) : Color.white)
                         .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: 5)
                 )
+                .onReceive(timer) { _ in
+                    currentTime = Date()
+                }
             } else {
                 // Anzeige, wenn keine Stunden vorhanden sind
                 HStack(spacing: 16) {
@@ -983,7 +989,7 @@ struct NextLessonWidget: View {
     }
     
     private func progress(for lesson: Lesson) -> Float {
-        let now = Date()
+        let now = currentTime
         if now < lesson.startTime {
             return 0.0
         } else if now > lesson.endTime {
@@ -996,7 +1002,7 @@ struct NextLessonWidget: View {
     }
     
     private func timeUntilStart(for lesson: Lesson) -> String {
-        let now = Date()
+        let now = currentTime
         if now >= lesson.startTime {
             return "Läuft bereits"
         }
